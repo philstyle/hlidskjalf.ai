@@ -1,0 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;900&family=Poppins:wght@400;500;700&family=Sora:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Light mode (default) — values are space-separated RGB channels */
+  --nx-bg: 243 246 251;
+  --nx-bg-alt: 233 238 245;
+  --nx-surface: 255 255 255;
+  --nx-surface-hover: 240 244 250;
+  --nx-surface-active: 228 234 243;
+  --nx-text: 31 43 56;
+  --nx-text-secondary: 107 107 107;
+  --nx-muted: 158 181 209;
+  --nx-dim: 184 197 212;
+  --nx-accent: 33 127 241;
+  --nx-accent-light: 232 241 254;
+  --nx-accent-hover: 13 71 161;
+  --nx-accent-soft: 121 185 252;
+  --nx-border: 226 230 236;
+  --nx-border-light: 237 240 245;
+  --nx-border-focus: 33 127 241;
+  --nx-navy: 13 27 42;
+  --nx-navy-light: 31 43 56;
+  --nx-success: 16 185 129;
+  --nx-warning: 245 158 11;
+  --nx-danger: 239 68 68;
+  --nx-info: 33 127 241;
+  --nx-term-bg: 13 27 42;
+  --nx-term-fg: 226 230 236;
+  --nx-term-cursor: 33 127 241;
+  --nx-term-selection: 31 43 56;
+  --nx-shadow-color: rgba(0, 0, 0, 0.06);
+}
+
+:root.dark {
+  --nx-bg: 13 17 23;
+  --nx-bg-alt: 22 27 34;
+  --nx-surface: 28 33 40;
+  --nx-surface-hover: 36 43 53;
+  --nx-surface-active: 45 51 59;
+  --nx-text: 230 237 243;
+  --nx-text-secondary: 155 164 176;
+  --nx-muted: 107 123 141;
+  --nx-dim: 72 79 88;
+  --nx-accent: 56 139 253;
+  --nx-accent-light: 26 35 50;
+  --nx-accent-hover: 88 166 255;
+  --nx-accent-soft: 31 58 95;
+  --nx-border: 48 54 61;
+  --nx-border-light: 33 38 45;
+  --nx-border-focus: 56 139 253;
+  --nx-navy: 1 4 9;
+  --nx-navy-light: 13 17 23;
+  --nx-success: 63 185 80;
+  --nx-warning: 210 153 34;
+  --nx-danger: 248 81 73;
+  --nx-info: 56 139 253;
+  --nx-term-bg: 1 4 9;
+  --nx-term-fg: 230 237 243;
+  --nx-term-cursor: 56 139 253;
+  --nx-term-selection: 38 79 120;
+  --nx-shadow-color: rgba(0, 0, 0, 0.3);
+}
+
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+}
+
+body {
+  background: rgb(var(--nx-bg));
+  color: rgb(var(--nx-text));
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  overflow: hidden;
+}

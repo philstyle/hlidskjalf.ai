@@ -1,0 +1,19 @@
+[package]
+name = "nexus-headless"
+version = "0.2.0"
+edition = "2021"
+
+[[bin]]
+name = "nexus-headless"
+path = "src/main.rs"
+
+[dependencies]
+nexus-core = { path = "../core" }
+tokio = { workspace = true, features = ["rt-multi-thread", "signal"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+serde_json = { workspace = true }
+rusqlite = { workspace = true }
+chrono = { workspace = true }
+dirs = { workspace = true }
+fs2 = { workspace = true }

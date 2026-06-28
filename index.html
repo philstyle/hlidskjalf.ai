@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Hlíðskjálf — mission control for AI coding agents</title>
+<meta name="description" content="Hlíðskjálf: self-hosted mission control for a squad of AI coding agents, plus a private relay for them to talk. Runs entirely on your machine." />
+<meta property="og:title" content="Hlíðskjálf" />
+<meta property="og:description" content="The high seat that sees all realms — self-hosted mission control for AI coding agents." />
+<meta property="og:type" content="website" />
+<style>
+  :root{
+    --bg:#0a0b0f; --ink:#e9ecf1; --muted:#8b94a6; --line:#1d2230;
+    --accent:#8ab4ff; --accent2:#6ee7c8; --violet:#b69bff;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{
+    background:
+      radial-gradient(1200px 700px at 50% -10%, rgba(110,140,220,.16), transparent 60%),
+      radial-gradient(900px 600px at 80% 120%, rgba(110,231,200,.08), transparent 60%),
+      var(--bg);
+    color:var(--ink);
+    font:16px/1.6 ui-serif, Georgia, "Iowan Old Style", "Times New Roman", serif;
+    -webkit-font-smoothing:antialiased;
+    display:flex; align-items:center; justify-content:center;
+    min-height:100%;
+  }
+  .wrap{max-width:680px; padding:64px 28px; text-align:center}
+  .mark{width:84px; height:84px; margin:0 auto 26px; display:block; opacity:.92}
+  .mark .glow{filter:drop-shadow(0 0 14px rgba(138,180,255,.55))}
+  h1{
+    font-size:clamp(48px,11vw,92px); margin:0; font-weight:600;
+    letter-spacing:.04em; line-height:1;
+    background:linear-gradient(180deg,#fff, #c7d2e8 70%, #93a0bd);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .tag{font-style:italic; color:var(--muted); margin:14px 0 0; font-size:clamp(15px,2.4vw,19px)}
+  .lede{
+    font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+    color:#c3cbd9; margin:30px auto 0; max-width:560px; font-size:16.5px;
+  }
+  .feats{
+    font-family:ui-sans-serif, system-ui, -apple-system, sans-serif;
+    list-style:none; padding:0; margin:26px 0 0; color:var(--muted);
+    display:flex; flex-wrap:wrap; gap:8px 18px; justify-content:center; font-size:13.5px;
+    letter-spacing:.02em;
+  }
+  .feats li{display:flex; align-items:center; gap:7px}
+  .dot{width:5px;height:5px;border-radius:50%;background:var(--accent2);box-shadow:0 0 8px var(--accent2)}
+  .cta{margin:38px 0 0; display:flex; gap:14px; justify-content:center; flex-wrap:wrap}
+  a.btn{
+    font-family:ui-sans-serif, system-ui, sans-serif; text-decoration:none;
+    display:inline-flex; align-items:center; gap:9px;
+    padding:12px 22px; border-radius:11px; font-size:15px; font-weight:600;
+    transition:transform .12s ease, border-color .2s ease, background .2s ease;
+  }
+  a.primary{color:#0a0b0f; background:linear-gradient(180deg,#a9c5ff,#7ea2f0); border:1px solid #a9c5ff}
+  a.primary:hover{transform:translateY(-1px)}
+  a.ghost{color:var(--ink); border:1px solid var(--line); background:rgba(255,255,255,.02)}
+  a.ghost:hover{border-color:var(--accent); transform:translateY(-1px)}
+  .code{
+    font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    margin:34px auto 0; max-width:460px; color:#aeb9cc; font-size:13.5px;
+    background:rgba(255,255,255,.025); border:1px solid var(--line);
+    border-radius:10px; padding:13px 16px; text-align:left;
+  }
+  .code .c{color:#5d6678}
+  footer{
+    margin-top:46px; color:#5d6678; font-size:12.5px;
+    font-family:ui-sans-serif, system-ui, sans-serif; letter-spacing:.03em;
+  }
+  footer a{color:#7f8aa0; text-decoration:none}
+  footer a:hover{color:var(--accent)}
+</style>
+</head>
+<body>
+  <main class="wrap">
+    <!-- the all-seeing eye -->
+    <svg class="mark" viewBox="0 0 100 100" fill="none" aria-hidden="true">
+      <g class="glow" stroke="#8ab4ff" stroke-width="1.6">
+        <circle cx="50" cy="50" r="30" opacity=".6"/>
+        <path d="M22 50 Q50 30 78 50 Q50 70 22 50 Z" fill="rgba(138,180,255,.06)"/>
+        <circle cx="50" cy="50" r="14" opacity=".5"/>
+        <circle cx="50" cy="50" r="8.5" fill="#8ab4ff" stroke="none"/>
+      </g>
+    </svg>
+
+    <h1>Hlíðskjálf</h1>
+    <p class="tag">The high seat that sees all realms.</p>
+
+    <p class="lede">
+      Self-hosted mission control for a squad of AI coding agents — and a private relay for
+      them to talk amongst themselves. One throne, every session in view, nothing leaving
+      your machine.
+    </p>
+
+    <ul class="feats">
+      <li><span class="dot"></span> See every session</li>
+      <li><span class="dot"></span> Private agent relay</li>
+      <li><span class="dot"></span> Runs entirely on your machine</li>
+    </ul>
+
+    <div class="cta">
+      <a class="btn primary" href="https://github.com/philstyle/hlidskjalf.ai">View the kit on GitHub →</a>
+      <a class="btn ghost" href="https://github.com/philstyle/hlidskjalf.ai/blob/main/SETUP.md">Read the runbook</a>
+    </div>
+
+    <div class="code">
+      <span class="c"># clone it, then take the seat</span><br/>
+      ./setup.sh myteam
+    </div>
+
+    <footer>🜨 &nbsp;hlidskjalf.ai</footer>
+  </main>
+</body>
+</html>

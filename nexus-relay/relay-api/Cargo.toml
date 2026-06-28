@@ -1,0 +1,119 @@
+[package]
+name = "relay-api"
+autotests = false
+version = "0.1.0"
+edition.workspace = true
+license.workspace = true
+
+[features]
+default = ["backend-postgres"]
+backend-postgres = ["relay-db/backend-postgres", "relay-auth/backend-postgres", "relay-archive/backend-postgres", "sqlx/postgres"]
+backend-sqlite = ["relay-db/backend-sqlite", "relay-auth/backend-sqlite", "relay-archive/backend-sqlite", "sqlx/sqlite"]
+
+[lib]
+name = "relay_api"
+
+[[bin]]
+name = "relay-api"
+path = "src/main.rs"
+
+[[bin]]
+name = "relay-bootstrap"
+path = "src/bin/relay-bootstrap.rs"
+
+[dependencies]
+relay-core = { path = "../relay-core" }
+relay-db = { path = "../relay-db", default-features = false }
+relay-auth = { path = "../relay-auth", default-features = false }
+relay-notify = { path = "../relay-notify" }
+relay-archive = { path = "../relay-archive", default-features = false }
+axum = { workspace = true, features = ["multipart"] }
+sha2 = { workspace = true }
+mime_guess = { workspace = true }
+tokio = { workspace = true }
+tower = { workspace = true }
+tower-http = { workspace = true }
+sqlx = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+chrono = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = { workspace = true }
+thiserror = { workspace = true }
+hex = { workspace = true }
+rand = { workspace = true }
+opentelemetry = "0.31.0"
+opentelemetry_sdk = "0.31.0"
+opentelemetry-otlp = "0.31.1"
+tracing-opentelemetry = "0.32.1"
+reqwest = { workspace = true }
+
+[dev-dependencies]
+reqwest = { workspace = true, features = ["multipart"] }
+tempfile = { workspace = true }
+tokio = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+sqlx = { workspace = true }
+relay-auth = { path = "../relay-auth", default-features = false }
+relay-db = { path = "../relay-db", default-features = false }
+relay-notify = { path = "../relay-notify" }
+chrono = { workspace = true }
+axum = { workspace = true }
+
+[[test]]
+name = "blobs_test"
+required-features = ["backend-postgres"]
+
+[[test]]
+name = "channels_test"
+required-features = ["backend-postgres"]
+
+[[test]]
+name = "health_test"
+required-features = ["backend-postgres"]
+
+[[test]]
+name = "groups_test"
+required-features = ["backend-postgres"]
+
+[[test]]
+name = "groups_api_test"
+required-features = ["backend-postgres"]
+
+[[test]]
+name = "ledger_test"
+required-features = ["backend-postgres"]
+
+[[test]]
+name = "namespaces_test"
+required-features = ["backend-postgres"]
+
+[[test]]
+name = "org_namespaces_test"
+required-features = ["backend-postgres"]
+
+[[test]]
+name = "participants_test"
+required-features = ["backend-postgres"]
+
+[[test]]
+name = "sqlite_crud_test"
+required-features = ["backend-sqlite"]
+
+[[test]]
+name = "sqlite_ledger_test"
+required-features = ["backend-sqlite"]
+
+[[test]]
+name = "sqlite_search_test"
+required-features = ["backend-sqlite"]
+
+[[test]]
+name = "sqlite_concurrency_test"
+required-features = ["backend-sqlite"]
+
+[[test]]
+name = "sqlite_outbox_test"
+required-features = ["backend-sqlite"]

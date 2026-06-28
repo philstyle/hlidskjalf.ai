@@ -1,0 +1,74 @@
+[
+  {
+    "name": "yes_no_prompt",
+    "regex": "\\[Y/n\\]|\\[y/N\\]|\\(yes/no\\)|\\(y/n\\)",
+    "description": "Binary yes/no prompt waiting for user input",
+    "enabled": true
+  },
+  {
+    "name": "arrow_keys_prompt",
+    "regex": "Use arrow keys|Move up and down",
+    "description": "Interactive selection menu (arrow keys + Enter)",
+    "enabled": true
+  },
+  {
+    "name": "continue_prompt",
+    "regex": "Do you want to continue|Press Enter to continue|Press any key",
+    "description": "Confirmation prompt waiting for keypress",
+    "enabled": true
+  },
+  {
+    "name": "overwrite_prompt",
+    "regex": "Overwrite.*\\?|Replace.*\\?|Already exists.*overwrite",
+    "description": "File overwrite confirmation",
+    "enabled": true
+  },
+  {
+    "name": "password_prompt",
+    "regex": "(?i)password:|passphrase:|enter pin",
+    "description": "Credential prompt (password, passphrase, PIN)",
+    "enabled": true
+  },
+  {
+    "name": "permission_prompt",
+    "regex": "Allow|Deny|Do you trust",
+    "description": "Permission/trust prompt",
+    "enabled": true
+  },
+  {
+    "name": "select_option_prompt",
+    "regex": "\\? .*\\(Use arrow keys\\)|Select.*:",
+    "description": "Interactive option selector (inquirer-style)",
+    "enabled": true
+  },
+  {
+    "name": "rate_limited",
+    "regex": "(?i)rate limit|429|too many requests|throttled.*retry|retry after|requests per minute|Rate limited|temporarily limiting",
+    "description": "API rate limit hit — session stalled waiting for cooldown",
+    "enabled": true,
+    "auto_recover": true,
+    "recovery_command": "continue",
+    "backoff_secs": 30,
+    "max_retries": 5
+  },
+  {
+    "name": "api_overloaded",
+    "regex": "(?i)overloaded|529|service unavailable|capacity|503",
+    "description": "API overloaded or unavailable — session stalled",
+    "enabled": true,
+    "auto_recover": true,
+    "recovery_command": "continue",
+    "backoff_secs": 60,
+    "max_retries": 3
+  },
+  {
+    "name": "connection_error",
+    "regex": "(?i)ECONNREFUSED|ETIMEDOUT|connection reset|network error.*retry",
+    "description": "Network connectivity issue — session may be stalled on retries",
+    "enabled": true,
+    "auto_recover": true,
+    "recovery_command": "continue",
+    "backoff_secs": 30,
+    "max_retries": 3
+  }
+]

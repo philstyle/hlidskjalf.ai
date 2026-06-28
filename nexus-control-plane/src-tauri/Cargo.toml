@@ -1,0 +1,25 @@
+[package]
+name = "nexus-control-plane"
+version = "0.2.0"
+edition = "2021"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+serde = { workspace = true }
+serde_json = { workspace = true }
+uuid = { workspace = true }
+rusqlite = { workspace = true }
+chrono = { workspace = true }
+tauri-plugin-dialog = "2.6.0"
+tauri-plugin-os = "2"
+tokio = { workspace = true }
+nexus-core = { path = "../crates/core" }
+dirs = "5"
+reqwest = { workspace = true }
+
+[lib]
+name = "nexus_control_plane_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]

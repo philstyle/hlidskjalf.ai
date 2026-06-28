@@ -1,0 +1,58 @@
+[
+  {
+    "name": "task_complete",
+    "regex": "\\w+ for \\d+m \\d+s",
+    "description": "Claude finished a task (e.g., 'Cogitated for 2m 34s')",
+    "slack_emoji": "white_check_mark",
+    "enabled": true
+  },
+  {
+    "name": "waiting_for_input",
+    "regex": "^>\\s*$",
+    "description": "Claude Code prompt waiting for next instruction",
+    "slack_emoji": "bell",
+    "enabled": true
+  },
+  {
+    "name": "task_complete_seconds",
+    "regex": "\\w+ for \\d+s",
+    "description": "Claude finished a task with seconds-only timing (e.g., 'Cogitated for 45s')",
+    "slack_emoji": "white_check_mark",
+    "enabled": true
+  },
+  {
+    "name": "zsh_prompt",
+    "regex": ".*❯\\s*$",
+    "description": "Zsh prompt character visible — shell waiting for input",
+    "slack_emoji": "shell",
+    "enabled": true
+  },
+  {
+    "name": "shell_prompt",
+    "regex": ".*\\$\\s*$",
+    "description": "Shell $ prompt visible — shell waiting for input",
+    "slack_emoji": "shell",
+    "enabled": true
+  },
+  {
+    "name": "claude_what_next",
+    "regex": "What would you like to do\\?",
+    "description": "Claude Code asking 'What would you like to do?' — waiting for next task",
+    "slack_emoji": "bell",
+    "enabled": true
+  },
+  {
+    "name": "codex_prompt",
+    "regex": "^\\s*›\\s*$",
+    "description": "Codex CLI prompt waiting for input (› U+203A alone on line)",
+    "slack_emoji": "bell",
+    "enabled": true
+  },
+  {
+    "name": "codex_startup_placeholder",
+    "regex": "^\\s*›\\s+\\S",
+    "description": "Codex CLI startup-banner state (› followed by placeholder text like 'Explain this codebase')",
+    "slack_emoji": "bell",
+    "enabled": true
+  }
+]

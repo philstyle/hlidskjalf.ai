@@ -1,0 +1,2 @@
+-- no-op: ledger_entries.ledger_id never had a FK in the SQLite schema (migration 4).
+-- Postgres drops it here to allow channel ledger_ids; SQLite has nothing to drop.

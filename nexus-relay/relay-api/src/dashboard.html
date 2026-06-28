@@ -1,0 +1,1269 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NexusRelay Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: #0d1117; color: #c9d1d9; line-height: 1.5; }
+  .container { max-width: 1200px; margin: 0 auto; padding: 16px; }
+
+  /* Header */
+  .header { display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid #21262d; margin-bottom: 20px; }
+  .header h1 { font-size: 18px; font-weight: 600; color: #f0f6fc; }
+  .header-right { display: flex; align-items: center; gap: 12px; font-size: 13px; color: #8b949e; }
+  .header-right button { background: none; border: 1px solid #30363d; color: #8b949e; padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; }
+  .header-right button:hover { border-color: #8b949e; color: #c9d1d9; }
+
+  /* Login */
+  .login { text-align: center; padding: 80px 20px; }
+  .login h2 { font-size: 20px; color: #f0f6fc; margin-bottom: 8px; }
+  .login p { color: #8b949e; margin-bottom: 20px; font-size: 14px; }
+  .login input { background: #161b22; border: 1px solid #30363d; color: #c9d1d9; padding: 8px 14px; border-radius: 6px; width: 400px; max-width: 90%; font-size: 14px; font-family: monospace; }
+  .login input:focus { outline: none; border-color: #58a6ff; }
+  .login .btn { background: #238636; border: none; color: #fff; padding: 8px 20px; border-radius: 6px; cursor: pointer; font-size: 14px; margin-left: 8px; }
+  .login .error { color: #f85149; margin-top: 12px; font-size: 13px; }
+
+  /* Stats bar */
+  .stats-bar { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+  .stat-card { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 12px 16px; flex: 1; min-width: 120px; }
+  .stat-card .label { font-size: 11px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; }
+  .stat-card .value { font-size: 22px; font-weight: 600; color: #f0f6fc; margin-top: 2px; }
+  .stat-card .sub { font-size: 11px; color: #8b949e; margin-top: 2px; }
+
+  /* Main layout */
+  .main { display: flex; gap: 16px; }
+  .sidebar { width: 340px; flex-shrink: 0; }
+  .content { flex: 1; min-width: 0; }
+
+  /* Topology sidebar */
+  .topology { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 14px; }
+  .topology h3 { font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; }
+  .ns-name { font-size: 13px; font-weight: 600; color: #58a6ff; margin-bottom: 6px; margin-top: 12px; }
+  .ns-name:first-child { margin-top: 0; }
+  .p-row { padding: 5px 8px; border-radius: 4px; cursor: pointer; margin-left: 8px; border-left: 2px solid #21262d; }
+  .p-row:hover { background: #1c2128; }
+  .p-row.selected { background: #1c2128; border-left-color: #58a6ff; }
+  .p-row.escalation { border-left-color: #f85149; }
+  .p-row .p-name { font-size: 13px; color: #c9d1d9; font-family: monospace; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .p-row .p-meta { font-size: 11px; color: #484f58; display: flex; gap: 8px; }
+  .p-row .p-desc { font-size: 11px; color: #7ee787; font-style: italic; display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .p-badge { font-size: 10px; padding: 0 5px; border-radius: 8px; }
+  .p-badge.operator { background: #2a1f3f; color: #bc8cff; }
+  .p-badge.human { background: #1f3a5f; color: #58a6ff; }
+  .p-badge.channel { background: #1a3a2a; color: #3fb950; }
+
+  /* Sidebar filter */
+  .sidebar-filter { background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 6px 10px; border-radius: 6px; width: 100%; font-size: 12px; margin-bottom: 10px; }
+  .sidebar-filter:focus { outline: none; border-color: #58a6ff; }
+  .p-row.hidden { display: none; }
+  .ns-name.hidden { display: none; }
+
+  /* Quick send bar */
+  .quick-send { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; }
+  .quick-send-row { display: flex; gap: 8px; }
+  .quick-send input { flex: 1; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 6px 10px; border-radius: 6px; font-size: 13px; font-family: monospace; }
+  .quick-send input:focus { outline: none; border-color: #58a6ff; }
+  .quick-send select { background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 6px 8px; border-radius: 6px; font-size: 12px; }
+  .quick-send textarea { flex: 2; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 6px 10px; border-radius: 6px; font-size: 13px; resize: none; min-height: 32px; font-family: inherit; }
+  .quick-send textarea:focus { outline: none; border-color: #58a6ff; }
+  .quick-send .send-btn { background: #238636; border: none; color: #fff; padding: 6px 14px; border-radius: 6px; cursor: pointer; font-size: 13px; white-space: nowrap; }
+  .quick-send .send-btn:hover { background: #2ea043; }
+  .quick-send .qs-hint { font-size: 11px; color: #484f58; margin-top: 4px; }
+
+  /* Message panel */
+  .msg-panel { background: #161b22; border: 1px solid #21262d; border-radius: 8px; min-height: 400px; display: flex; flex-direction: column; }
+  .msg-header { padding: 12px 16px; border-bottom: 1px solid #21262d; display: flex; justify-content: space-between; align-items: center; }
+  .msg-header h3 { font-size: 14px; color: #f0f6fc; font-family: monospace; }
+  .msg-header .msg-info { font-size: 11px; color: #8b949e; }
+  .msg-list { flex: 1; overflow-y: auto; max-height: 500px; padding: 8px; }
+  .msg-empty { padding: 40px; text-align: center; color: #484f58; font-size: 13px; }
+  .msg { padding: 10px 12px; margin: 4px 0; border-radius: 6px; background: #0d1117; border: 1px solid #21262d; }
+  .msg.escalation { border-color: #f8514966; background: #f851490d; }
+  .msg-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 4px; }
+  .msg-sender { font-size: 12px; color: #58a6ff; font-family: monospace; }
+  .msg-time { font-size: 11px; color: #484f58; }
+  .msg-type { font-size: 10px; padding: 1px 6px; border-radius: 8px; background: #21262d; color: #8b949e; margin-left: 6px; }
+  .msg-type.escalation { background: #f851491a; color: #f85149; }
+  .msg-type.task { background: #238636aa; color: #3fb950; }
+  .msg-type.result { background: #1f6feb33; color: #58a6ff; }
+  .msg-body { font-size: 13px; color: #c9d1d9; white-space: pre-wrap; word-break: break-word; }
+  .msg-corr { font-size: 10px; color: #484f58; margin-top: 4px; font-family: monospace; }
+
+  /* Compose */
+  .compose { padding: 12px; border-top: 1px solid #21262d; }
+  .compose-row { display: flex; gap: 8px; }
+  .compose select { background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 6px 8px; border-radius: 6px; font-size: 12px; }
+  .compose textarea { flex: 1; background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 8px; border-radius: 6px; font-size: 13px; resize: vertical; min-height: 36px; max-height: 120px; font-family: inherit; }
+  .compose textarea:focus { outline: none; border-color: #58a6ff; }
+  .compose .send-btn { background: #238636; border: none; color: #fff; padding: 6px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; white-space: nowrap; }
+  .compose .send-btn:hover { background: #2ea043; }
+  .compose .send-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Forward button */
+  .fwd-btn { background: #21262d; border: 1px solid #30363d; color: #8b949e; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 11px; margin-right: 6px; }
+  .fwd-btn:hover { background: #30363d; color: #c9d1d9; }
+
+  /* No selection */
+  .no-selection { display: flex; align-items: center; justify-content: center; height: 400px; color: #484f58; font-size: 14px; }
+
+  /* Health bar */
+  .health-bar { display: flex; gap: 16px; margin-top: 16px; padding: 10px 0; border-top: 1px solid #21262d; font-size: 12px; color: #8b949e; flex-wrap: wrap; }
+  .health-item { display: flex; align-items: center; gap: 4px; }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .dot.green { background: #3fb950; }
+  .dot.yellow { background: #d29922; }
+
+  /* Admin modal */
+  .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 100; display: flex; align-items: center; justify-content: center; }
+  .modal { background: #161b22; border: 1px solid #30363d; border-radius: 10px; padding: 24px; width: 500px; max-width: 90%; max-height: 80vh; overflow-y: auto; }
+  .modal h3 { font-size: 16px; color: #f0f6fc; margin-bottom: 16px; }
+  .modal label { font-size: 13px; color: #8b949e; display: block; margin-bottom: 4px; margin-top: 12px; }
+  .modal input, .modal select { background: #0d1117; border: 1px solid #30363d; color: #c9d1d9; padding: 8px 12px; border-radius: 6px; width: 100%; font-size: 14px; }
+  .modal input:focus { outline: none; border-color: #58a6ff; }
+  .modal .modal-actions { margin-top: 20px; display: flex; gap: 8px; justify-content: flex-end; }
+  .modal .modal-actions button { padding: 8px 16px; border-radius: 6px; cursor: pointer; font-size: 13px; border: none; }
+  .modal .btn-primary { background: #238636; color: #fff; }
+  .modal .btn-primary:hover { background: #2ea043; }
+  .modal .btn-secondary { background: #21262d; color: #c9d1d9; border: 1px solid #30363d; }
+  .modal .btn-secondary:hover { background: #30363d; }
+  .modal .error { color: #f85149; font-size: 13px; margin-top: 8px; }
+
+  /* Key result display */
+  .key-result { background: #0d1117; border: 1px solid #30363d; border-radius: 6px; padding: 12px; margin-top: 12px; }
+  .key-result .key-label { font-size: 11px; color: #8b949e; text-transform: uppercase; margin-bottom: 2px; }
+  .key-result .key-value { font-size: 13px; color: #7ee787; font-family: monospace; word-break: break-all; user-select: all; cursor: text; }
+  .key-result .key-actions { display: flex; gap: 6px; margin-top: 6px; }
+  .key-result .key-actions button { background: #21262d; border: 1px solid #30363d; color: #8b949e; padding: 3px 10px; border-radius: 4px; cursor: pointer; font-size: 11px; }
+  .key-result .key-actions button:hover { border-color: #8b949e; color: #c9d1d9; }
+  .key-result .key-warn { font-size: 11px; color: #d29922; margin-top: 8px; }
+
+  /* QR modal */
+  .qr-container { display: flex; flex-direction: column; align-items: center; padding: 20px 0; }
+  .qr-container canvas { border-radius: 8px; }
+  .qr-label { font-size: 12px; color: #8b949e; margin-top: 12px; text-align: center; }
+  .qr-url { font-size: 11px; color: #484f58; margin-top: 4px; word-break: break-all; text-align: center; font-family: monospace; }
+
+  .header-right .btn-admin { background: #21262d; border: 1px solid #30363d; color: #bc8cff; }
+  .header-right .btn-admin:hover { border-color: #bc8cff; }
+
+  /* Sparklines */
+  .sparkline { display: block; margin-top: 2px; }
+  .activity-chart { background: #161b22; border: 1px solid #21262d; border-radius: 8px; padding: 12px 16px; margin-bottom: 16px; }
+  .activity-chart h3 { font-size: 12px; color: #8b949e; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+
+  @media (max-width: 768px) {
+    .main { flex-direction: column; }
+    .sidebar { width: 100%; }
+    .stats-bar { flex-direction: column; }
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <h1>NexusRelay</h1>
+    <div class="header-right" id="header-right"></div>
+  </div>
+  <div id="app"></div>
+</div>
+<script>
+const BASE = window.location.origin;
+let token = localStorage.getItem('relay_token') || '';
+let refreshTimer = null;
+let selectedLedger = null;
+let selectedName = '';
+let selectedChannel = null; // channel name if viewing a channel, null if participant
+let participantMap = {};
+let msgRefreshTimer = null;
+let channelsList = [];
+let latestTopology = null;
+let currentIdentity = null;
+
+function $(id) { return document.getElementById(id); }
+
+function renderLogin(error) {
+  $('header-right').innerHTML = '';
+  $('app').innerHTML = `
+    <div class="login">
+      <h2>NexusRelay Dashboard</h2>
+      <p>Enter your relay token to view system status.</p>
+      <form onsubmit="doLogin(event)">
+        <input type="password" id="token-input" placeholder="nrr_ / nra_ / nrp_ token" value="">
+        <button type="submit" class="btn">Connect</button>
+      </form>
+      ${error ? `<p class="error">${error}</p>` : ''}
+    </div>`;
+  const inp = $('token-input');
+  if (inp) inp.focus();
+}
+
+async function doLogin(e) {
+  e.preventDefault();
+  token = $('token-input').value.trim();
+  if (!token) return;
+  try {
+    const resp = await fetch(BASE + '/stats', { headers: { 'Authorization': 'Bearer ' + token } });
+    if (resp.status === 401) { renderLogin('Invalid token.'); token = ''; return; }
+    if (!resp.ok) { renderLogin('Error: ' + resp.status); token = ''; return; }
+    localStorage.setItem('relay_token', token);
+    startDashboard();
+  } catch (err) { renderLogin('Connection failed: ' + err.message); token = ''; }
+}
+
+function logout() {
+  token = ''; selectedLedger = null;
+  dashboardInitialized = false;
+  currentIdentity = null;
+  latestTopology = null;
+  localStorage.removeItem('relay_token');
+  if (refreshTimer) clearInterval(refreshTimer);
+  if (msgRefreshTimer) clearInterval(msgRefreshTimer);
+  renderLogin();
+}
+
+async function apiFetch(path) {
+  try {
+    console.log('[relay] GET', path, 'token:', token ? token.substring(0,8)+'...' : '(none)');
+    const resp = await fetch(BASE + path, { headers: { 'Authorization': 'Bearer ' + token } });
+    console.log('[relay] GET', path, '→', resp.status);
+    if (resp.status === 401) { logout(); return null; }
+    if (!resp.ok) { console.error('[relay] GET', path, 'failed:', resp.status); return null; }
+    return resp.json();
+  } catch(err) { console.error('[relay] GET', path, 'error:', err); return null; }
+}
+
+async function apiPost(path, body) {
+  try {
+    console.log('[relay] POST', path);
+    const resp = await fetch(BASE + path, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    console.log('[relay] POST', path, '→', resp.status);
+    if (resp.status === 401) { logout(); return null; }
+    var data = await resp.json();
+    if (!resp.ok) { console.error('[relay] POST', path, 'error:', resp.status, data); data.error = data.error || 'request failed'; }
+    return data;
+  } catch(err) { console.error('[relay] POST', path, 'error:', err); return null; }
+}
+
+function timeAgo(iso) {
+  if (!iso) return 'never';
+  const secs = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  if (secs < 60) return secs + 's ago';
+  if (secs < 3600) return Math.floor(secs / 60) + 'm ago';
+  if (secs < 86400) return Math.floor(secs / 3600) + 'h ago';
+  return Math.floor(secs / 86400) + 'd ago';
+}
+
+function fmt(n) { return n != null ? n.toLocaleString() : '0'; }
+
+function esc(s) {
+  const d = document.createElement('div'); d.textContent = s; return d.innerHTML;
+}
+
+function payloadText(payload) {
+  if (!payload) return '';
+  if (typeof payload === 'string') return payload;
+  if (payload.message) return payload.message;
+  if (payload.body) return (payload.title ? payload.title + ': ' : '') + payload.body;
+  if (payload.title) return payload.title;
+  return JSON.stringify(payload, null, 2);
+}
+
+function selectLedger(id, name) {
+  selectedLedger = id;
+  selectedName = name;
+  selectedChannel = null;
+  lastHighWaterMark = null;
+  document.querySelectorAll('.p-row').forEach(r => r.classList.remove('selected'));
+  var row = document.querySelector('[data-id="' + id + '"]');
+  if (row) row.classList.add('selected');
+  var cs = $('content-section');
+  if (cs) cs.innerHTML = '<div class="msg-panel" id="msg-content"><div class="msg-empty">Loading messages...</div></div>';
+  loadMessages();
+  if (msgRefreshTimer) clearInterval(msgRefreshTimer);
+  msgRefreshTimer = setInterval(loadMessages, 5000);
+}
+
+function selectChannel(name) {
+  selectedChannel = name;
+  selectedLedger = null;
+  selectedName = '#' + name;
+  lastHighWaterMark = null;
+  document.querySelectorAll('.p-row').forEach(r => r.classList.remove('selected'));
+  var row = document.querySelector('[data-channel="' + name + '"]');
+  if (row) row.classList.add('selected');
+  var cs = $('content-section');
+  if (cs) cs.innerHTML = '<div class="msg-panel" id="msg-content"><div class="msg-empty">Loading messages...</div></div>';
+  loadMessages();
+  if (msgRefreshTimer) clearInterval(msgRefreshTimer);
+  msgRefreshTimer = setInterval(loadMessages, 5000);
+}
+
+let lastHighWaterMark = null;
+
+async function loadMessages() {
+  if (!selectedLedger && !selectedChannel) return;
+  // Get head sequence first — skip re-render if nothing changed
+  var headPath = selectedChannel
+    ? '/channels/' + encodeURIComponent(selectedChannel) + '/head'
+    : '/ledger/' + selectedLedger + '/head';
+  var headData = await apiFetch(headPath);
+  if (headData && lastHighWaterMark !== null && headData.sequence === lastHighWaterMark) return;
+  var since = 0;
+  if (headData && headData.sequence > 100) {
+    since = headData.sequence - 100;
+  }
+  var path = selectedChannel
+    ? '/channels/' + encodeURIComponent(selectedChannel) + '/read?since=' + since + '&limit=100'
+    : '/ledger/' + selectedLedger + '/read?since=' + since + '&limit=100';
+  var data = await apiFetch(path);
+  if (!data) return;
+  lastHighWaterMark = data.high_water_mark;
+  // Merge channel sender_names into participantMap for rendering
+  if (data.sender_names) {
+    for (var k in data.sender_names) participantMap[k] = data.sender_names[k];
+  }
+  renderMessages(data);
+}
+
+function renderMessages(data) {
+  const panel = $('msg-content');
+  if (!panel) return;
+  const entries = data.entries || [];
+
+  // Ensure stable structure: header + list + compose
+  // Only create the structure once, then update header and list in-place
+  if (!$('msg-header-section')) {
+    panel.innerHTML = `
+      <div id="msg-header-section"></div>
+      <div id="msg-list-section"></div>
+      <div class="compose" id="msg-compose-section">
+        <div class="compose-row">
+          <select id="msg-type">
+            <option value="task">task</option>
+            <option value="result">result</option>
+            <option value="query">query</option>
+            <option value="ack">ack</option>
+            <option value="escalation">escalation</option>
+            <option value="system">system</option>
+            <option value="feedback">feedback</option>
+          </select>
+          <textarea id="msg-text" placeholder="Type a message..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMsg()}"></textarea>
+          <button class="send-btn" id="msg-send-btn" onclick="sendMsg()">Send</button>
+        </div>
+      </div>`;
+  }
+
+  // Update header
+  $('msg-header-section').innerHTML = `<div class="msg-header">
+    <h3>${esc(selectedName)}</h3>
+    <span class="msg-info">${entries.length} messages | head: ${data.high_water_mark}</span>
+  </div>`;
+
+  // Update message list, preserving scroll position
+  const listSection = $('msg-list-section');
+  const prevMsgList = listSection ? listSection.querySelector('.msg-list') : null;
+  const prevScroll = prevMsgList ? prevMsgList.scrollTop : 0;
+  let listHtml;
+  if (entries.length === 0) {
+    listHtml = '<div class="msg-empty">No messages in this ledger</div>';
+  } else {
+    listHtml = '<div class="msg-list">';
+    for (const e of entries.slice().reverse()) {
+      const senderName = participantMap[e.sender_id] || e.sender_id.substring(0, 8);
+      const typeCls = e.msg_type === 'escalation' ? 'escalation' : (e.msg_type === 'task' ? 'task' : (e.msg_type === 'result' ? 'result' : ''));
+      const msgCls = e.msg_type === 'escalation' ? 'escalation' : '';
+      listHtml += `<div class="msg ${msgCls}">
+        <div class="msg-top">
+          <span><span class="msg-sender">${esc(senderName)}</span><span class="msg-type ${typeCls}">${e.msg_type}</span></span>
+          <span>
+            <button class="fwd-btn" onclick="openForwardModal('${e.ledger_id}', ${e.sequence})" title="Forward">Fwd</button>
+            <span class="msg-time">${timeAgo(e.received_at)}</span>
+          </span>
+        </div>
+        <div class="msg-body">${esc(payloadText(e.payload))}</div>
+        ${e.correlation_id ? `<div class="msg-corr">corr: ${e.correlation_id}</div>` : ''}
+      </div>`;
+    }
+    listHtml += '</div>';
+  }
+  listSection.innerHTML = listHtml;
+  if (prevScroll) {
+    const newMsgList = listSection.querySelector('.msg-list');
+    if (newMsgList) newMsgList.scrollTop = prevScroll;
+  }
+}
+
+async function sendMsg() {
+  const text = $('msg-text');
+  const type = $('msg-type');
+  if (!text || !text.value.trim() || (!selectedLedger && !selectedChannel)) return;
+  const btn = $('msg-send-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  var path = selectedChannel
+    ? `/channels/${encodeURIComponent(selectedChannel)}/append`
+    : `/ledger/${selectedLedger}/append`;
+  var result = await apiPost(path, {
+    msg_type: type.value,
+    payload: { message: text.value.trim() }
+  });
+  if (result && !result.error) { text.value = ''; }
+  if (btn) { btn.disabled = false; btn.textContent = 'Send'; }
+  loadMessages();
+}
+
+function openForwardModal(sourceLedgerId, sourceSequence) {
+  var options = Object.entries(participantMap)
+    .sort((a, b) => a[1].localeCompare(b[1]))
+    .map(([id, name]) => `<option value="${id}">${esc(name)}</option>`)
+    .join('');
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'fwd-modal-overlay';
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = `<div class="modal" style="width:420px;">
+    <h3>Forward Message</h3>
+    <label>Recipient</label>
+    <select id="fwd-recipient">${options}</select>
+    <label>Comment (optional)</label>
+    <input id="fwd-comment" type="text" placeholder="Add a note..." />
+    <div id="fwd-error" class="error" style="display:none"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="document.getElementById('fwd-modal-overlay').remove()">Cancel</button>
+      <button class="btn-primary" id="fwd-send-btn" onclick="doForward('${sourceLedgerId}', ${sourceSequence})">Forward</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+}
+
+async function doForward(sourceLedgerId, sourceSequence) {
+  var recipient = $('fwd-recipient');
+  var comment = $('fwd-comment');
+  var btn = $('fwd-send-btn');
+  var errEl = $('fwd-error');
+  if (!recipient || !recipient.value) return;
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  if (errEl) { errEl.style.display = 'none'; }
+  var result = await apiPost(`/ledger/${recipient.value}/forward`, {
+    source_ledger_id: sourceLedgerId,
+    source_sequence: sourceSequence,
+    comment: comment && comment.value.trim() ? comment.value.trim() : null,
+  });
+  if (result && result.error) {
+    if (errEl) { errEl.textContent = result.error; errEl.style.display = 'block'; }
+    if (btn) { btn.disabled = false; btn.textContent = 'Forward'; }
+  } else {
+    var overlay = document.getElementById('fwd-modal-overlay');
+    if (overlay) overlay.remove();
+    loadMessages();
+  }
+}
+
+function showQR(apiKey, label) {
+  var qrUrl = 'nexuscomms://setup?token=' + encodeURIComponent(apiKey) + '&url=' + encodeURIComponent(BASE);
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = `<div class="modal" style="width:360px;text-align:center;">
+    <h3>Scan with NexusComms</h3>
+    <div class="qr-container" id="qr-target"></div>
+    <div class="qr-label">${esc(label)}</div>
+    <div class="qr-url">${esc(qrUrl)}</div>
+    <div class="modal-actions" style="justify-content:center;">
+      <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  new QRCode(document.getElementById('qr-target'), {
+    text: qrUrl,
+    width: 220,
+    height: 220,
+    colorDark: '#f0f6fc',
+    colorLight: '#0d1117',
+    correctLevel: QRCode.CorrectLevel.M,
+  });
+}
+
+function showQRGenerator() {
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = `<div class="modal" style="width:400px;">
+    <h3>Generate QR Code</h3>
+    <p style="font-size:13px;color:#8b949e;margin-bottom:12px;">Paste a participant token to generate a scannable QR code for the NexusComms iOS app.</p>
+    <input type="text" id="qr-key-input" placeholder="nrp_..." style="font-family:monospace;" />
+    <label style="margin-top:8px;">Label (optional)</label>
+    <input type="text" id="qr-label-input" placeholder="e.g. demo/mbp/nexus-relay" />
+    <div id="qr-gen-target" style="margin-top:16px;text-align:center;"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+      <button class="btn-primary" onclick="doGenerateQR()">Generate</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('qr-key-input').focus();
+}
+
+function doGenerateQR() {
+  var key = document.getElementById('qr-key-input').value.trim();
+  var label = document.getElementById('qr-label-input').value.trim() || key.substring(0, 12) + '...';
+  var target = document.getElementById('qr-gen-target');
+  if (!key) return;
+  var qrUrl = 'nexuscomms://setup?token=' + encodeURIComponent(key) + '&url=' + encodeURIComponent(BASE);
+  target.innerHTML = '';
+  var container = document.createElement('div');
+  container.className = 'qr-container';
+  container.id = 'qr-gen-canvas';
+  target.appendChild(container);
+  new QRCode(container, {
+    text: qrUrl,
+    width: 220,
+    height: 220,
+    colorDark: '#f0f6fc',
+    colorLight: '#0d1117',
+    correctLevel: QRCode.CorrectLevel.M,
+  });
+  target.innerHTML += `<div class="qr-label">${esc(label)}</div><div class="qr-url">${esc(qrUrl)}</div>`;
+}
+
+function filterSidebar(query) {
+  window._lastFilter = query;
+  var q = query.toLowerCase();
+  document.querySelectorAll('.p-row').forEach(function(row) {
+    var name = (row.dataset.name || row.dataset.channel || '').toLowerCase();
+    var desc = (row.querySelector('.p-desc') || {}).textContent || '';
+    row.classList.toggle('hidden', q && !name.includes(q) && !desc.toLowerCase().includes(q));
+  });
+  // Hide namespace headers if all their children are hidden
+  document.querySelectorAll('.ns-name').forEach(function(hdr) {
+    var next = hdr.nextElementSibling;
+    var anyVisible = false;
+    while (next && !next.classList.contains('ns-name') && !next.classList.contains('topology')) {
+      if (next.classList.contains('p-row') && !next.classList.contains('hidden')) anyVisible = true;
+      next = next.nextElementSibling;
+    }
+    hdr.classList.toggle('hidden', q && !anyVisible);
+  });
+}
+
+async function quickSend() {
+  var target = $('qs-target');
+  var text = $('qs-text');
+  var type = $('qs-type');
+  if (!target || !target.value.trim() || !text || !text.value.trim()) return;
+  var btn = $('qs-btn');
+  if (btn) { btn.disabled = true; btn.textContent = '...'; }
+  var t = target.value.trim();
+  var path;
+  if (t.startsWith('#')) {
+    path = '/channels/' + encodeURIComponent(t.slice(1)) + '/append';
+  } else if (t.startsWith('@')) {
+    // @agent → operator shorthand, @demo/host/agent → full address
+    path = '/ledger/' + t + '/append';
+  } else if (t.indexOf('/') === -1 && !t.match(/^[0-9a-f-]{36}$/)) {
+    // Bare name without slashes or UUID format → treat as operator shorthand
+    path = '/ledger/@' + encodeURIComponent(t) + '/append';
+  } else {
+    // UUID or other format
+    path = '/ledger/' + t + '/append';
+  }
+  var result = await apiPost(path, { msg_type: type.value, payload: { message: text.value.trim() } });
+  if (result && !result.error) { text.value = ''; }
+  if (btn) { btn.disabled = false; btn.textContent = 'Send'; }
+  // Reload current view if we sent to the selected target
+  if (selectedLedger || selectedChannel) loadMessages();
+}
+
+// Sparkline: renders a tiny SVG line chart from an array of numbers
+function sparklineSvg(values, width, height, color) {
+  if (!values || values.length === 0) return '';
+  var max = Math.max(...values, 1);
+  var step = width / Math.max(values.length - 1, 1);
+  var points = values.map(function(v, i) {
+    return (i * step).toFixed(1) + ',' + (height - (v / max) * (height - 2) - 1).toFixed(1);
+  }).join(' ');
+  return `<svg class="sparkline" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">
+    <polyline fill="none" stroke="${color}" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" points="${points}" />
+  </svg>`;
+}
+
+// Activity bar chart: renders SVG bars for hourly totals (7 days)
+function activityChartSvg(hourlyData, width, height) {
+  var totalHours = 168; // 7 days
+  if (!hourlyData || hourlyData.length === 0) return '<div style="color:#484f58;font-size:12px;padding:8px;">No activity in the last 7 days</div>';
+  // Fill 168 hour buckets (7 days)
+  var now = new Date();
+  var buckets = new Array(totalHours).fill(0);
+  var hourMap = {};
+  for (var d of hourlyData) {
+    var dt = new Date(d.hour);
+    var key = dt.getFullYear() + '-' + dt.getMonth() + '-' + dt.getDate() + '-' + dt.getHours();
+    hourMap[key] = d.count;
+  }
+  for (var i = 0; i < totalHours; i++) {
+    var h = new Date(now.getTime() - (totalHours - 1 - i) * 3600000);
+    var key = h.getFullYear() + '-' + h.getMonth() + '-' + h.getDate() + '-' + h.getHours();
+    buckets[i] = hourMap[key] || 0;
+  }
+  var max = Math.max(...buckets, 1);
+  var barW = Math.max(Math.floor((width - 24) / totalHours), 1);
+  var gap = 0;
+  var bars = '';
+  for (var i = 0; i < totalHours; i++) {
+    var bh = Math.max((buckets[i] / max) * (height - 16), buckets[i] > 0 ? 2 : 0);
+    var x = i * (barW + gap);
+    var y = height - 16 - bh;
+    var opacity = buckets[i] > 0 ? 0.8 : 0.15;
+    bars += `<rect x="${x}" y="${y}" width="${barW}" height="${bh}" rx="0" fill="#58a6ff" opacity="${opacity}" />`;
+    // Day labels every 24 hours
+    if (i % 24 === 0) {
+      var dt = new Date(now.getTime() - (totalHours - 1 - i) * 3600000);
+      var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      var label = dayNames[dt.getDay()];
+      bars += `<text x="${x}" y="${height - 2}" font-size="9" fill="#484f58">${label}</text>`;
+    }
+  }
+  return `<svg width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">${bars}</svg>`;
+}
+
+let activityData = null;
+
+async function showInviteManager() {
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'invite-overlay';
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = `<div class="modal" style="width:600px;">
+    <h3>Invite Tokens</h3>
+    <div id="invite-list" style="margin-bottom:16px;"><em style="color:#484f58;">Loading...</em></div>
+    <div style="border-top:1px solid #21262d;padding-top:12px;">
+      <label>Create new invite</label>
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="invite-label" placeholder="Label (e.g. 'for brad')" style="flex:1;" />
+        <button class="btn-primary" id="invite-create-btn" onclick="doCreateInvite()">Generate</button>
+      </div>
+    </div>
+    <div id="invite-result"></div>
+    <div id="invite-error"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="document.getElementById('invite-overlay').remove()">Close</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  await refreshInviteList();
+}
+
+async function refreshInviteList() {
+  var data = await apiFetch('/invites');
+  var el = document.getElementById('invite-list');
+  if (!data || !el) return;
+  if (data.length === 0) {
+    el.innerHTML = '<div style="color:#484f58;font-size:13px;">No invites yet.</div>';
+    return;
+  }
+  var html = '<div style="max-height:200px;overflow-y:auto;">';
+  for (var inv of data) {
+    var status = inv.used ? `<span style="color:#3fb950;">used by ${esc(inv.used_by_namespace)}</span>` : '<span style="color:#d29922;">pending</span>';
+    html += `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #21262d;">
+      <div><code style="color:#8b949e;font-size:11px;">${esc(inv.key_prefix)}...</code> ${inv.label ? esc(inv.label) : ''} — ${status}</div>
+      ${!inv.used ? `<button style="background:none;border:1px solid #30363d;color:#f85149;padding:2px 8px;border-radius:4px;cursor:pointer;font-size:11px;" onclick="doRevokeInvite('${inv.id}')">Revoke</button>` : ''}
+    </div>`;
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+async function doCreateInvite() {
+  var label = document.getElementById('invite-label').value.trim() || undefined;
+  var btn = document.getElementById('invite-create-btn');
+  var errEl = document.getElementById('invite-error');
+  var resEl = document.getElementById('invite-result');
+  btn.disabled = true; btn.textContent = 'Generating...';
+  errEl.innerHTML = '';
+  try {
+    var resp = await fetch(BASE + '/invites', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label: label })
+    });
+    var data = await resp.json();
+    if (resp.status >= 400) {
+      errEl.innerHTML = '<p class="error">' + esc(data.error || 'Failed') + '</p>';
+      btn.disabled = false; btn.textContent = 'Generate';
+      return;
+    }
+    resEl.innerHTML = `
+      <div class="key-result">
+        <div class="key-label">Invite Key (single-use)</div>
+        <div class="key-value">${esc(data.invite_key)}</div>
+      </div>
+      <div class="key-result">
+        <div class="key-label">Instructions for the new operator</div>
+        <div style="font-size:12px;color:#c9d1d9;background:#0d1117;padding:10px;border-radius:6px;font-family:monospace;white-space:pre-wrap;margin-top:4px;">curl -X POST https://relay.example.com/namespaces/register \\
+  -H "Content-Type: application/json" \\
+  -d '{"invite_key": "${esc(data.invite_key)}", "name": "YOUR_NAME", "operator_type": "human"}'
+
+# Returns: admin_key + operator_key
+# Then set NCC env vars:
+#   RELAY_URL=https://relay.example.com
+#   RELAY_NAMESPACE=YOUR_NAME
+#   RELAY_ADMIN_KEY=nra_... (from response)
+#   NCC_NAME=your-machine-name
+# Dashboard: https://relay.example.com/dashboard (login with admin key)</div>
+      </div>
+      <div class="key-result">
+        <div class="key-warn">Copy this invite key now — it cannot be recovered. Single-use: consumed when a namespace is created.</div>
+      </div>`;
+    btn.disabled = false; btn.textContent = 'Generate';
+    document.getElementById('invite-label').value = '';
+    await refreshInviteList();
+  } catch(e) {
+    errEl.innerHTML = '<p class="error">' + esc(e.message) + '</p>';
+    btn.disabled = false; btn.textContent = 'Generate';
+  }
+}
+
+async function doRevokeInvite(id) {
+  await fetch(BASE + '/invites/' + id, {
+    method: 'DELETE',
+    headers: { 'Authorization': 'Bearer ' + token }
+  });
+  await refreshInviteList();
+}
+
+function isRoot() { return token.startsWith('nrr_'); }
+function isAdmin() { return token.startsWith('nra_'); }
+function canCreateChannel() { return isRoot() || isAdmin() || token.startsWith('nrp_'); }
+
+async function getCurrentIdentity() {
+  if (currentIdentity) return currentIdentity;
+  currentIdentity = await apiFetch('/participants/me');
+  return currentIdentity;
+}
+
+function topologyNamespaceByName(nsName) {
+  if (!latestTopology || !latestTopology.namespaces) return null;
+  return latestTopology.namespaces.find(ns => ns.name === nsName) || null;
+}
+
+function topologyNamespaceById(nsId) {
+  if (!latestTopology || !latestTopology.namespaces) return null;
+  return latestTopology.namespaces.find(ns => ns.id === nsId) || null;
+}
+
+function activeParticipantsForNamespace(nsName) {
+  var ns = topologyNamespaceByName(nsName);
+  if (!ns || !ns.participants) return [];
+  return ns.participants.filter(p => p.status === 'active');
+}
+
+async function apiDelete(path) {
+  try {
+    var resp = await fetch(BASE + path, {
+      method: 'DELETE',
+      headers: { 'Authorization': 'Bearer ' + token }
+    });
+    if (resp.status === 401) { logout(); return { error: 'unauthorized' }; }
+    if (resp.status === 204) return { ok: true };
+    var data = await resp.json().catch(() => ({}));
+    if (!resp.ok) return { error: data.error || 'request failed' };
+    return data || { ok: true };
+  } catch (e) {
+    return { error: e.message };
+  }
+}
+
+function setGroupsStatus(message, isError) {
+  var el = $('groups-status');
+  if (!el) return;
+  el.innerHTML = message ? `<div class="${isError ? 'error' : ''}" style="font-size:13px;color:${isError ? '#f85149' : '#7ee787'};">${esc(message)}</div>` : '';
+}
+
+async function showGroupsManager() {
+  if (!(isRoot() || isAdmin())) return;
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'groups-overlay';
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = `<div class="modal" style="width:900px;">
+    <h3>Groups</h3>
+    <div id="groups-status" style="margin-bottom:10px;"></div>
+    <div id="groups-list" style="margin-bottom:16px;"><em style="color:#484f58;">Loading...</em></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="document.getElementById('groups-overlay').remove()">Close</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  await refreshGroupsList();
+}
+
+async function namespacesForGroups() {
+  if (isRoot()) {
+    var allGroups = await apiFetch('/groups');
+    if (!allGroups) return [];
+    var byNs = {};
+    for (var g of allGroups) {
+      if (!byNs[g.namespace_name]) {
+        byNs[g.namespace_name] = {
+          namespace_id: g.namespace_id,
+          namespace_name: g.namespace_name,
+          groups: [],
+          participants: activeParticipantsForNamespace(g.namespace_name)
+        };
+      }
+      byNs[g.namespace_name].groups.push(g);
+    }
+    return Object.values(byNs).sort((a, b) => a.namespace_name.localeCompare(b.namespace_name));
+  }
+
+  var me = await getCurrentIdentity();
+  if (!me) return [];
+  var ns = topologyNamespaceById(me.namespace_id);
+  var nsName = ns ? ns.name : me.display_name.split('/')[0];
+  var groups = await apiFetch('/namespaces/' + encodeURIComponent(nsName) + '/groups');
+  if (!groups) return [];
+  return [{
+    namespace_id: me.namespace_id,
+    namespace_name: nsName,
+    groups: groups,
+    participants: activeParticipantsForNamespace(nsName)
+  }];
+}
+
+async function refreshGroupsList() {
+  var el = $('groups-list');
+  if (!el) return;
+  var namespaces = await namespacesForGroups();
+  if (!el) return;
+  if (!namespaces.length) {
+    el.innerHTML = '<div style="color:#484f58;font-size:13px;">No groups available.</div>';
+    return;
+  }
+  var html = '';
+  for (var ns of namespaces) {
+    var participants = ns.participants || [];
+    var groupRows = (ns.groups || []).map(g => renderGroupRow(ns.namespace_name, g, participants)).join('');
+    html += `<div style="border:1px solid #21262d;border-radius:8px;margin-bottom:14px;overflow:hidden;">
+      <div style="display:flex;justify-content:space-between;align-items:center;background:#0d1117;padding:10px 12px;border-bottom:1px solid #21262d;">
+        <div style="font-size:14px;color:#f0f6fc;font-weight:600;">${esc(ns.namespace_name)}</div>
+        <div style="font-size:11px;color:#8b949e;">${(ns.groups || []).length} groups</div>
+      </div>
+      <div style="padding:10px 12px;border-bottom:1px solid #21262d;">
+        <label style="margin:0 0 6px 0;">Create group</label>
+        <div style="display:flex;gap:8px;">
+          <input type="text" id="group-name-${esc(ns.namespace_name)}" placeholder="team-x" style="flex:1;" />
+          <button class="btn-primary" id="group-create-${esc(ns.namespace_name)}" onclick="doCreateGroup('${esc(ns.namespace_name)}')">Create</button>
+        </div>
+      </div>
+      <div>${groupRows || '<div style="padding:12px;color:#484f58;font-size:13px;">No groups.</div>'}</div>
+    </div>`;
+  }
+  el.innerHTML = html;
+}
+
+function renderGroupRow(nsName, group, participants) {
+  var members = group.members || [];
+  var memberIds = new Set(members.map(m => m.id));
+  var choices = participants
+    .filter(p => !memberIds.has(p.id))
+    .map(p => `<option value="${p.id}">${esc(p.display_name)}</option>`)
+    .join('');
+  var memberHtml = members.length
+    ? members.map(m => `<span style="display:inline-flex;align-items:center;gap:5px;margin:3px 5px 3px 0;padding:3px 7px;border-radius:12px;background:#21262d;font-size:12px;">
+        ${esc(m.display_name)}
+        <button title="${group.is_default ? 'Remove from default group' : 'Remove member'}" onclick="doRemoveMember('${esc(nsName)}','${group.id}','${m.id}')" style="background:none;border:0;color:#f85149;cursor:pointer;font-size:14px;line-height:1;">&times;</button>
+      </span>`).join('')
+    : '<span style="color:#484f58;font-size:12px;">No members</span>';
+  var deleteBtn = group.is_default ? '' : `<button onclick="doDeleteGroup('${esc(nsName)}','${group.id}','${esc(group.name)}')" style="background:none;border:1px solid #30363d;color:#f85149;padding:3px 9px;border-radius:4px;cursor:pointer;font-size:11px;">Delete</button>`;
+  var hint = group.is_default ? '<div style="color:#d29922;font-size:11px;margin-top:6px;">Default group: remove members here to isolate them into narrower groups.</div>' : '';
+  return `<div style="padding:10px 12px;border-bottom:1px solid #21262d;">
+    <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
+      <div style="min-width:0;">
+        <div style="font-size:13px;color:#f0f6fc;font-weight:600;">
+          ${esc(group.name)}
+          ${group.is_default ? '<span style="font-size:10px;color:#d29922;border:1px solid #d2992255;border-radius:10px;padding:1px 6px;margin-left:6px;">default</span>' : ''}
+        </div>
+        <div style="font-size:11px;color:#484f58;">${members.length} members</div>
+      </div>
+      ${deleteBtn}
+    </div>
+    <div style="margin-top:8px;">${memberHtml}</div>
+    ${hint}
+    <div style="display:flex;gap:8px;margin-top:8px;">
+      <select id="group-add-${group.id}" style="flex:1;min-width:0;">
+        <option value="">Add member...</option>
+        ${choices}
+      </select>
+      <button class="btn-secondary" onclick="doAddMember('${esc(nsName)}','${group.id}')">Add</button>
+    </div>
+  </div>`;
+}
+
+async function doCreateGroup(nsName) {
+  var input = document.getElementById('group-name-' + nsName);
+  var btn = document.getElementById('group-create-' + nsName);
+  var name = input ? input.value.trim().toLowerCase() : '';
+  if (!name) { setGroupsStatus('Group name is required.', true); return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Creating...'; }
+  var result = await apiPost('/namespaces/' + encodeURIComponent(nsName) + '/groups', { name: name });
+  if (btn) { btn.disabled = false; btn.textContent = 'Create'; }
+  if (result && result.error) { setGroupsStatus(result.error, true); return; }
+  setGroupsStatus('Group created.', false);
+  await refreshGroupsList();
+}
+
+async function doDeleteGroup(nsName, groupId, groupName) {
+  if (!confirm('Delete group "' + groupName + '"? Memberships will be removed.')) return;
+  var result = await apiDelete('/namespaces/' + encodeURIComponent(nsName) + '/groups/' + groupId);
+  if (result && result.error) { setGroupsStatus(result.error, true); return; }
+  setGroupsStatus('Group deleted.', false);
+  await refreshGroupsList();
+}
+
+async function doAddMember(nsName, groupId) {
+  var select = document.getElementById('group-add-' + groupId);
+  if (!select || !select.value) { setGroupsStatus('Choose a member to add.', true); return; }
+  var result = await apiPost('/namespaces/' + encodeURIComponent(nsName) + '/groups/' + groupId + '/members', {
+    participant_id: select.value
+  });
+  if (result && result.error) { setGroupsStatus(result.error, true); return; }
+  setGroupsStatus('Member added.', false);
+  await refreshGroupsList();
+}
+
+async function doRemoveMember(nsName, groupId, participantId) {
+  var result = await apiDelete('/namespaces/' + encodeURIComponent(nsName) + '/groups/' + groupId + '/members/' + participantId);
+  if (result && result.error) { setGroupsStatus(result.error, true); return; }
+  setGroupsStatus('Member removed.', false);
+  await refreshGroupsList();
+}
+
+function showCreateChannel() {
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'ch-modal-overlay';
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = `<div class="modal">
+    <h3>Create Channel</h3>
+    <label>Channel name</label>
+    <input type="text" id="ch-name" placeholder="e.g. nexus-skills" pattern="[a-z0-9._-]+" />
+    <label>Description (optional)</label>
+    <input type="text" id="ch-desc" placeholder="e.g. feedback board for nexus-skills" />
+    <div id="ch-error"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="document.getElementById('ch-modal-overlay').remove()">Cancel</button>
+      <button class="btn-primary" id="ch-create-btn" onclick="doCreateChannel()">Create</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('ch-name').focus();
+}
+
+async function doCreateChannel() {
+  var name = document.getElementById('ch-name').value.trim().toLowerCase();
+  var desc = document.getElementById('ch-desc').value.trim() || undefined;
+  var btn = document.getElementById('ch-create-btn');
+  var errEl = document.getElementById('ch-error');
+  if (!name) { errEl.innerHTML = '<p class="error">Name is required</p>'; return; }
+  btn.disabled = true; btn.textContent = 'Creating...';
+  errEl.innerHTML = '';
+  try {
+    var resp = await fetch(BASE + '/channels', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name, description: desc })
+    });
+    var data = await resp.json();
+    if (resp.status >= 400) {
+      errEl.innerHTML = '<p class="error">' + esc(data.error || 'Failed') + '</p>';
+      btn.disabled = false; btn.textContent = 'Create';
+      return;
+    }
+    document.getElementById('ch-modal-overlay').remove();
+    refresh();
+  } catch(e) {
+    errEl.innerHTML = '<p class="error">' + esc(e.message) + '</p>';
+    btn.disabled = false; btn.textContent = 'Create';
+  }
+}
+
+function showCreateNamespace() {
+  var overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  overlay.id = 'modal-overlay';
+  overlay.onclick = function(e) { if (e.target === overlay) overlay.remove(); };
+  overlay.innerHTML = `<div class="modal">
+    <h3>Create Namespace</h3>
+    <label>Namespace name</label>
+    <input type="text" id="ns-name" placeholder="e.g. agent" pattern="[a-z0-9-]+" />
+    <label>Operator type</label>
+    <select id="ns-op-type">
+      <option value="human">human</option>
+      <option value="agent">agent</option>
+      <option value="automation">automation</option>
+    </select>
+    <div id="ns-result"></div>
+    <div id="ns-error"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="document.getElementById('modal-overlay').remove()">Cancel</button>
+      <button class="btn-primary" id="ns-create-btn" onclick="doCreateNamespace()">Create</button>
+    </div>
+  </div>`;
+  document.body.appendChild(overlay);
+  document.getElementById('ns-name').focus();
+}
+
+async function doCreateNamespace() {
+  var name = document.getElementById('ns-name').value.trim().toLowerCase();
+  var opType = document.getElementById('ns-op-type').value;
+  var btn = document.getElementById('ns-create-btn');
+  var errEl = document.getElementById('ns-error');
+  var resEl = document.getElementById('ns-result');
+  if (!name) { errEl.innerHTML = '<p class="error">Name is required</p>'; return; }
+  btn.disabled = true; btn.textContent = 'Creating...';
+  errEl.innerHTML = '';
+  try {
+    var resp = await fetch(BASE + '/namespaces', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: name, operator_type: opType })
+    });
+    var data = await resp.json();
+    if (resp.status >= 400) {
+      errEl.innerHTML = '<p class="error">' + esc(data.error || 'Failed') + '</p>';
+      btn.disabled = false; btn.textContent = 'Create';
+      return;
+    }
+    resEl.innerHTML = `
+      <div class="key-result">
+        <div class="key-label">Namespace</div>
+        <div class="key-value">${esc(data.name)}</div>
+      </div>
+      <div class="key-result">
+        <div class="key-label">Admin Key (manages participants)</div>
+        <div class="key-value">${esc(data.admin_key)}</div>
+      </div>
+      <div class="key-result">
+        <div class="key-label">Operator Key (${esc(data.operator.display_name)})</div>
+        <div class="key-value">${esc(data.operator.api_key)}</div>
+        <div class="key-actions">
+          <button onclick="showQR('${data.operator.api_key}', '${esc(data.operator.display_name)}')">QR Code</button>
+        </div>
+      </div>
+      <div class="key-result">
+        <div class="key-label">Operator ID (ledger ID)</div>
+        <div class="key-value">${esc(data.operator.id)}</div>
+      </div>
+      <div class="key-result">
+        <div class="key-warn">Copy these keys now — they cannot be recovered after closing this dialog.</div>
+      </div>`;
+    btn.style.display = 'none';
+    document.getElementById('ns-name').disabled = true;
+    document.getElementById('ns-op-type').disabled = true;
+    refresh();
+  } catch(e) {
+    errEl.innerHTML = '<p class="error">' + esc(e.message) + '</p>';
+    btn.disabled = false; btn.textContent = 'Create';
+  }
+}
+
+function renderDashboard(stats, topology) {
+  const prefix = token.substring(0, 4);
+  var inviteBtn = isRoot() ? '<button class="btn-admin" onclick="showInviteManager()">Invites</button>' : '';
+  var groupsBtn = (isRoot() || isAdmin()) ? '<button class="btn-admin" onclick="showGroupsManager()">Groups</button>' : '';
+  var adminBtn = isRoot() ? '<button class="btn-admin" onclick="showCreateNamespace()">+ Namespace</button>' : '';
+  var channelBtn = (isRoot() || isAdmin()) ? '<button class="btn-admin" onclick="showCreateChannel()">+ Channel</button>' : '';
+  $('header-right').innerHTML = `
+    <span>token: <code>${prefix}****</code></span>
+    <span id="refresh-indicator" style="color:#3fb950">&#9679;</span>
+    <button onclick="showQRGenerator()">QR Setup</button>
+    ${inviteBtn}${groupsBtn}${channelBtn}${adminBtn}
+    <button onclick="logout()">Logout</button>`;
+
+  const flushAgo = stats.archive.last_flush_at ? timeAgo(stats.archive.last_flush_at) : 'never';
+  const flushDot = !stats.archive.last_flush_at ? 'yellow' :
+    ((Date.now() - new Date(stats.archive.last_flush_at).getTime()) > 300000 ? 'yellow' : 'green');
+
+  // Build participant map for sender name resolution
+  participantMap = {};
+  if (topology && topology.namespaces) {
+    for (const ns of topology.namespaces) {
+      for (const p of ns.participants) { participantMap[p.id] = p.display_name; }
+    }
+  }
+
+  var chartHtml = activityData ? activityChartSvg(activityData.total, 600, 60) : '';
+  let statsHtml = `
+    <div class="stats-bar">
+      <div class="stat-card"><div class="label">Messages</div><div class="value">${fmt(stats.messages.total)}</div><div class="sub">${fmt(stats.messages.last_hour)} last hour</div></div>
+      <div class="stat-card"><div class="label">Active</div><div class="value">${stats.participants.active}</div><div class="sub">${stats.participants.inactive} inactive</div></div>
+      <div class="stat-card"><div class="label">Namespaces</div><div class="value">${stats.namespaces}</div></div>
+      <div class="stat-card"><div class="label">Archive</div><div class="value">${flushAgo}</div><div class="sub">${fmt(stats.archive.entries_pending)} pending</div></div>
+    </div>
+    <div class="activity-chart">
+      <h3>Message Activity (7d)</h3>
+      ${chartHtml}
+    </div>`;
+
+  // Build sparkline data per ledger: 168 hourly buckets (7 days)
+  function ledgerSparkline(ledgerId) {
+    if (!activityData || !activityData.per_ledger || !activityData.per_ledger[ledgerId]) return '';
+    var entries = activityData.per_ledger[ledgerId];
+    var now = new Date();
+    var buckets = new Array(168).fill(0);
+    for (var d of entries) {
+      var h = new Date(d.hour);
+      var hoursAgo = Math.floor((now - h) / 3600000);
+      if (hoursAgo >= 0 && hoursAgo < 168) buckets[167 - hoursAgo] = d.count;
+    }
+    if (buckets.every(v => v === 0)) return '';
+    return sparklineSvg(buckets, 120, 16, '#58a6ff');
+  }
+
+  // Sidebar: filter + topology
+  let sidebarHtml = '<input type="text" class="sidebar-filter" id="sidebar-filter" placeholder="Filter participants and channels..." oninput="filterSidebar(this.value)" />';
+  sidebarHtml += '<div class="topology"><h3>Participants</h3>';
+  if (topology && topology.namespaces) {
+    for (const ns of topology.namespaces) {
+      sidebarHtml += `<div class="ns-name">${esc(ns.name)}</div>`;
+      // Sort: online first, then by last_active_at descending
+      var sorted = ns.participants.filter(p => p.status === 'active').sort((a, b) => {
+        if (a.online !== b.online) return b.online - a.online;
+        var ta = a.last_active_at ? new Date(a.last_active_at).getTime() : 0;
+        var tb = b.last_active_at ? new Date(b.last_active_at).getTime() : 0;
+        return tb - ta;
+      });
+      for (const p of sorted) {
+        const sel = p.id === selectedLedger ? 'selected' : '';
+        const badge = p.is_operator ? '<span class="p-badge operator">operator</span>' :
+          (p.participant_type === 'human' ? '<span class="p-badge human">human</span>' : '');
+        const onlineDot = p.online ? '<span class="dot green" style="margin-right:4px;"></span>' : '<span class="dot" style="margin-right:4px;background:#484f58;"></span>';
+        const activeInfo = p.last_active_at ? timeAgo(p.last_active_at) : 'never';
+        const spark = ledgerSparkline(p.id);
+        sidebarHtml += `<div class="p-row ${sel}" data-id="${p.id}" data-name="${p.display_name.replace(/"/g,'&quot;')}">
+          <span class="p-name">${onlineDot}${esc(p.display_name)} ${badge}</span>
+          <div class="p-meta"><span>${fmt(p.ledger.message_count)} msgs</span><span>active ${activeInfo}</span></div>
+          ${p.description ? `<span class="p-desc">${esc(p.description)}</span>` : ''}
+          ${spark}
+        </div>`;
+      }
+    }
+  }
+  sidebarHtml += '</div>';
+
+  // Channels section
+  var chBtn = (isRoot() || isAdmin()) ? ' <button style="float:right;background:none;border:1px solid #30363d;color:#8b949e;padding:1px 8px;border-radius:4px;cursor:pointer;font-size:11px;" onclick="event.stopPropagation();showCreateChannel()">+</button>' : '';
+  sidebarHtml += `<div class="topology" style="margin-top:12px;"><h3>Channels${chBtn}</h3>`;
+  if (channelsList.length === 0) {
+    sidebarHtml += '<div style="font-size:12px;color:#484f58;padding:4px 0;">No channels yet</div>';
+  } else {
+    for (const ch of channelsList) {
+      const sel = selectedChannel === ch.name ? 'selected' : '';
+      const chSpark = ledgerSparkline(ch.id);
+      sidebarHtml += `<div class="p-row ${sel}" data-channel="${esc(ch.name)}" data-name="#${esc(ch.name)}">
+        <span class="p-name">#${esc(ch.name)} <span class="p-badge channel">channel</span></span>
+        <div class="p-meta"><span>${fmt(ch.message_count)} msgs</span><span>${timeAgo(ch.last_received_at)}</span></div>
+        ${ch.description ? `<span class="p-desc">${esc(ch.description)}</span>` : ''}
+        ${chSpark}
+      </div>`;
+    }
+  }
+  sidebarHtml += '</div>';
+
+  // Health bar
+  let healthHtml = `<div class="health-bar">
+    <div class="health-item"><span class="dot green"></span> relay OK</div>`;
+  if (stats.system) {
+    healthHtml += `<div class="health-item">DB: ${stats.system.db_pool_idle}/${stats.system.db_pool_size} idle</div>`;
+  }
+  healthHtml += `<div class="health-item"><span class="dot ${flushDot}"></span> archive ${flushAgo}</div>
+    <div class="health-item">${fmt(stats.messages.last_24h)} msgs/24h</div>
+  </div>`;
+
+  // Update sections in-place — don't touch the message panel
+  $('stats-section').innerHTML = statsHtml;
+  $('sidebar-section').innerHTML = sidebarHtml;
+  $('health-section').innerHTML = healthHtml;
+
+  // Event delegation for participant and channel clicks
+  $('sidebar-section').onclick = function(e) {
+    var row = e.target.closest('.p-row');
+    if (!row) return;
+    if (row.dataset.channel) {
+      selectChannel(row.dataset.channel);
+    } else if (row.dataset.id) {
+      selectLedger(row.dataset.id, row.dataset.name);
+    }
+  };
+
+  // Restore filter state after sidebar rebuild
+  var filterEl = $('sidebar-filter');
+  if (filterEl && window._lastFilter) { filterEl.value = window._lastFilter; filterSidebar(window._lastFilter); }
+
+  // Only set content section if no ledger is selected (don't clobber message view)
+  if (!selectedLedger && !selectedChannel) {
+    $('content-section').innerHTML = '<div class="msg-panel"><div class="no-selection">Select a participant or channel to view messages</div></div>';
+  }
+}
+
+async function refresh() {
+  const ind = $('refresh-indicator');
+  if (ind) ind.style.color = '#d29922';
+  const [stats, topology, channels, activity] = await Promise.all([
+    apiFetch('/stats'), apiFetch('/stats/topology'), apiFetch('/channels'), apiFetch('/stats/activity')
+  ]);
+  channelsList = channels || [];
+  latestTopology = topology;
+  activityData = activity;
+  if (stats && topology) renderDashboard(stats, topology);
+  if (ind) { ind.style.color = '#3fb950'; setTimeout(() => { if (ind) ind.style.color = '#484f58'; }, 500); }
+}
+
+let dashboardInitialized = false;
+
+function startDashboard() {
+  if (!dashboardInitialized) {
+    $('app').innerHTML = `
+      <div id="stats-section"></div>
+      <div class="quick-send">
+        <div class="quick-send-row">
+          <input type="text" id="qs-target" placeholder="@demo/mbp/agent or #channel-name" />
+          <select id="qs-type">
+            <option value="task">task</option>
+            <option value="query">query</option>
+            <option value="feedback">feedback</option>
+            <option value="result">result</option>
+            <option value="escalation">escalation</option>
+            <option value="ack">ack</option>
+            <option value="system">system</option>
+          </select>
+          <textarea id="qs-text" placeholder="Message..." rows="1" onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();quickSend()}"></textarea>
+          <button class="send-btn" id="qs-btn" onclick="quickSend()">Send</button>
+        </div>
+        <div class="qs-hint">@agent for operator | @demo/host/agent for direct | #channel for topic</div>
+      </div>
+      <div class="main">
+        <div class="sidebar" id="sidebar-section"></div>
+        <div class="content" id="content-section">
+          <div class="msg-panel"><div class="no-selection">Select a participant or channel to view messages</div></div>
+        </div>
+      </div>
+      <div id="health-section"></div>`;
+    dashboardInitialized = true;
+  }
+  refresh();
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = setInterval(refresh, 15000);
+}
+
+console.log('[relay] init, token:', token ? token.substring(0,8)+'...' : '(none)');
+if (token) { startDashboard(); } else { renderLogin(); }
+</script>
+</body>
+</html>

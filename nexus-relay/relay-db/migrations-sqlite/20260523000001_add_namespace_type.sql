@@ -1,0 +1,2 @@
+-- no-op: namespace_type and its CHECK were folded into the namespaces CREATE TABLE in migration 1.
+-- operator_id was already nullable from creation. Constraint-altering DDL is not supported in SQLite.

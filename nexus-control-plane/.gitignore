@@ -1,0 +1,38 @@
+# Node
+node_modules/
+.npm
+dist/
+
+# Rust / Tauri
+target/
+src-tauri/target/
+src-tauri/gen/
+src-tauri/Cargo.lock
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local development
+*.local
+.env
+.env.local
+
+# Health snapshots (generated)
+.nexus-os/health/snapshots/*.json
+
+# PWA build output
+src-tauri/pwa-dist/
+
+# Logs
+*.log
+!.aharpa/friction.log
+target/
+.relay/
+.gstack/

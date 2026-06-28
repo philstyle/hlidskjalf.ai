@@ -1,0 +1,29 @@
+[workspace]
+members = ["relay-core", "relay-db", "relay-auth", "relay-api", "relay-notify", "relay-archive", "relay-client"]
+resolver = "2"
+
+[workspace.package]
+edition = "2024"
+license = "MIT"
+
+[workspace.dependencies]
+axum = { version = "0.8.8" }
+tokio = { version = "1.49", features = ["full"] }
+tower = { version = "0.5" }
+tower-http = { version = "0.6", features = ["cors", "trace"] }
+sqlx = { version = "0.8.6", features = ["runtime-tokio", "tls-rustls", "uuid", "chrono", "json", "migrate"] }
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+argon2 = "0.5.3"
+rand = "0.9"
+uuid = { version = "1.20", features = ["v4", "v7", "serde"] }
+chrono = { version = "0.4.43", features = ["serde"] }
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.22", features = ["env-filter", "json"] }
+thiserror = "2.0"
+hex = "0.4"
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "http2"] }
+jsonwebtoken = "9"
+sha2 = "0.10"
+mime_guess = "2.0"
+tempfile = "3.15"

@@ -1,0 +1,2 @@
+-- no-op: the operator_id FK was folded into the namespaces CREATE TABLE in migration 1.
+-- Constraint-altering DDL is not supported in SQLite.

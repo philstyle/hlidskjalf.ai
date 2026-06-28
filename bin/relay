@@ -1,0 +1,169 @@
+#!/usr/bin/env python3
+"""relay — minimal CLI for the standalone NexusRelay message bus.
+
+Bundled with the standalone NCC kit so a squad of agents (and you) can send and
+read messages over your private relay with NO external/org tooling. It is a thin
+wrapper over the relay HTTP API (see nexus-relay/API.md) using only the Python
+standard library.
+
+Credential resolution (api key + base URL), in order:
+  1. environment: RELAY_API_KEY and RELAY_URL
+  2. ./.relay/state.json in the current directory (api_key, relay_url) — this is
+     what the NCC writes per workspace, so `cd <workspace> && relay ...` just works.
+
+Commands:
+  relay send <participant_id|@ns/host/agent> [--type TYPE] [--body TEXT]
+                          send a message (body also read from stdin if --body omitted)
+  relay inbox [--since N] [--limit N] [--all]   read messages received
+  relay participants [--query Q]                list participants you can see
+  relay whoami                                  show your own participant id / address
+
+Message types: task | result | query | escalation | ack | system | feedback
+Messages are sent as payload {"message": "<body>"} — the shape the NCC taps into
+a session's terminal.
+"""
+import argparse
+import json
+import os
+import sys
+import urllib.error
+import urllib.parse
+import urllib.request
+
+
+def _load_creds():
+    """Return (base_url, api_key) from env, falling back to ./.relay/state.json."""
+    base = os.environ.get("RELAY_URL")
+    key = os.environ.get("RELAY_API_KEY")
+    if not base or not key:
+        try:
+            with open(os.path.join(".relay", "state.json")) as fh:
+                state = json.load(fh)
+            base = base or state.get("relay_url")
+            key = key or state.get("api_key")
+        except (OSError, ValueError):
+            pass
+    if not base or not key:
+        sys.exit(
+            "relay: no credentials. Set RELAY_URL and RELAY_API_KEY, or run from a\n"
+            "       workspace that has a .relay/state.json (created by the NCC)."
+        )
+    return base.rstrip("/"), key
+
+
+def _request(method, base, path, key, body=None, query=None):
+    url = base + path
+    if query:
+        url += "?" + urllib.parse.urlencode(query)
+    data = json.dumps(body).encode() if body is not None else None
+    req = urllib.request.Request(url, data=data, method=method)
+    req.add_header("Authorization", "Bearer " + key)
+    if data is not None:
+        req.add_header("Content-Type", "application/json")
+    try:
+        with urllib.request.urlopen(req) as resp:
+            raw = resp.read()
+            return json.loads(raw) if raw else {}
+    except urllib.error.HTTPError as exc:
+        detail = exc.read().decode("utf-8", "replace")
+        sys.exit("relay: HTTP {} on {} {}\n  {}".format(exc.code, method, path, detail))
+    except urllib.error.URLError as exc:
+        sys.exit("relay: cannot reach relay at {} ({})".format(base, exc.reason))
+
+
+def _my_id(base, key):
+    return _request("GET", base, "/participants/me", key)["id"]
+
+
+def cmd_send(args):
+    base, key = _load_creds()
+    body = args.body
+    if body is None:
+        body = sys.stdin.read().rstrip("\n")
+    target = args.target  # UUID, or an @ns/host/agent address — both are valid path segments
+    result = _request(
+        "POST", base, "/ledger/{}/append".format(target), key,
+        body={"msg_type": args.type, "payload": {"message": body}},
+    )
+    print("sent → {}  (seq {})".format(target, result.get("sequence", "?")))
+
+
+def cmd_inbox(args):
+    base, key = _load_creds()
+    me = _my_id(base, key)
+    resp = _request(
+        "GET", base, "/ledger/{}/read".format(me), key,
+        query={"since": 0 if args.all else args.since, "limit": args.limit},
+    )
+    entries = resp.get("entries", [])
+    if not entries:
+        print("(inbox empty)")
+        return
+    for e in entries:
+        payload = e.get("payload") or {}
+        msg = payload.get("message") if isinstance(payload, dict) else None
+        if msg is None:
+            msg = json.dumps(payload)
+        sender = (e.get("sender_id") or "?")[:8]
+        print("[{}] from {} ({}): {}".format(
+            e.get("sequence", "?"), sender, e.get("msg_type", "?"), msg))
+    if resp.get("has_more"):
+        print("... more (use --since {})".format(resp.get("high_water_mark")))
+
+
+def cmd_participants(args):
+    base, key = _load_creds()
+    q = args.query
+    if not q:
+        # The relay's search requires a term; default to the caller's namespace
+        # (first segment of its address) so a bare `relay participants` lists peers.
+        me = _request("GET", base, "/participants/me", key)
+        q = (me.get("display_name") or "").split("/")[0]
+    if not q:
+        sys.exit("relay: participants needs --query (the relay requires a search term)")
+    resp = _request("GET", base, "/participants/search", key,
+                    query={"q": q, "limit": 100})
+    rows = resp if isinstance(resp, list) else resp.get("participants", resp.get("results", []))
+    if not rows:
+        print("(no participants visible)")
+        return
+    for p in rows:
+        print("{}  {}".format(p.get("id", "?"), p.get("display_name", "")))
+
+
+def cmd_whoami(_args):
+    base, key = _load_creds()
+    me = _request("GET", base, "/participants/me", key)
+    print("{}  {}".format(me.get("id", "?"), me.get("display_name", "")))
+
+
+def main():
+    parser = argparse.ArgumentParser(prog="relay", description="Standalone NexusRelay CLI")
+    sub = parser.add_subparsers(dest="cmd", required=True)
+
+    p_send = sub.add_parser("send", help="send a message to a participant")
+    p_send.add_argument("target", help="recipient participant UUID or @ns/host/agent address")
+    p_send.add_argument("--type", default="task",
+                        help="msg_type (task|result|query|escalation|ack|system|feedback)")
+    p_send.add_argument("--body", default=None, help="message text (else read from stdin)")
+    p_send.set_defaults(func=cmd_send)
+
+    p_inbox = sub.add_parser("inbox", help="read messages you've received")
+    p_inbox.add_argument("--since", type=int, default=0, help="return entries with sequence > N")
+    p_inbox.add_argument("--limit", type=int, default=100, help="max entries (1-1000)")
+    p_inbox.add_argument("--all", action="store_true", help="read from the beginning")
+    p_inbox.set_defaults(func=cmd_inbox)
+
+    p_part = sub.add_parser("participants", help="list participants you can see")
+    p_part.add_argument("--query", default="", help="filter substring")
+    p_part.set_defaults(func=cmd_participants)
+
+    p_who = sub.add_parser("whoami", help="show your own participant id/address")
+    p_who.set_defaults(func=cmd_whoami)
+
+    args = parser.parse_args()
+    args.func(args)
+
+
+if __name__ == "__main__":
+    main()

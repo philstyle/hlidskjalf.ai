@@ -1,0 +1,16 @@
+[package]
+name = "nexus-tui"
+version = "0.2.0"
+edition = "2021"
+
+[[bin]]
+name = "nexus-tui"
+path = "src/main.rs"
+
+[dependencies]
+nexus-core = { path = "../core" }
+ratatui = "0.29"
+crossterm = { version = "0.28", features = ["event-stream"] }
+tokio = { workspace = true, features = ["rt-multi-thread", "time"] }
+serde_json = { workspace = true }
+futures-util = { workspace = true }

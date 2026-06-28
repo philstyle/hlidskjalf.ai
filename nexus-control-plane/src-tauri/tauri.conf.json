@@ -1,0 +1,44 @@
+{
+  "$schema": "https://raw.githubusercontent.com/tauri-apps/tauri/dev/crates/tauri-cli/schema.json",
+  "productName": "Nexus Command Center",
+  "version": "0.2.0",
+  "identifier": "com.skynexus.nexus-control-plane",
+  "build": {
+    "frontendDist": "../dist",
+    "devUrl": "http://localhost:1420",
+    "beforeDevCommand": "npm run dev:all",
+    "beforeBuildCommand": "npm run build:all"
+  },
+  "bundle": {
+    "resources": ["resources/nexus-statusline.cjs"]
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "Nexus Command Center",
+        "width": 1200,
+        "height": 800
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "wix": {
+        "language": "en-US"
+      },
+      "nsis": {
+        "languages": ["English"]
+      }
+    }
+  }
+}

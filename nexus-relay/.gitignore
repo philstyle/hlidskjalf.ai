@@ -1,0 +1,44 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+venv/
+.venv/
+
+# Node (if dashboard uses it)
+node_modules/
+.npm
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local development
+*.local
+.env
+.env.local
+
+# Health snapshots (generated)
+.nexus-os/health/snapshots/*.json
+
+# Everything outside .nexus-os/ is yours - structure however you want
+# This gitignore is just a starting point for common patterns
+
+# Rust
+/target/
+**/*.rs.bk
+Cargo.lock
+
+# SQLx offline query cache
+.sqlx/
+
+# Logs
+*.log
+.relay/

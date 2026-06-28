@@ -1,0 +1,13 @@
+# build artifacts
+target/
+node_modules/
+**/pwa-dist/
+dist/
+# local runtime state / secrets — never commit
+**/.relay/
+*.db
+.env
+.env.*
+*.log
+.DS_Store
+SETUP-MANIFEST.md

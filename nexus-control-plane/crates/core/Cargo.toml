@@ -1,0 +1,33 @@
+[package]
+name = "nexus-core"
+version = "0.2.0"
+edition = "2021"
+
+[dependencies]
+rusqlite = { workspace = true }
+chrono = { workspace = true }
+uuid = { workspace = true }
+rand = { workspace = true }
+hex = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+qrcode = { workspace = true }
+portable-pty = { workspace = true }
+strip-ansi-escapes = { workspace = true }
+tokio = { workspace = true }
+axum = { workspace = true }
+futures-util = { workspace = true }
+rust-embed = { workspace = true }
+mime_guess = { workspace = true }
+base64 = { workspace = true }
+notify = { workspace = true }
+dirs = { workspace = true }
+tokio-stream = { workspace = true }
+regex = { workspace = true }
+reqwest = { workspace = true }
+vt100 = { workspace = true }
+hostname = { workspace = true }
+async-stream = { workspace = true }
+
+[dev-dependencies]
+tempfile = "3"

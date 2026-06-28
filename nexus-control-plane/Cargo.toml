@@ -1,0 +1,30 @@
+[workspace]
+members = ["crates/core", "crates/tui", "crates/headless", "src-tauri"]
+resolver = "2"
+
+[workspace.dependencies]
+rusqlite = { version = "0.31", features = ["bundled"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4"] }
+rand = "0.9"
+hex = "0.4"
+qrcode = "0.14"
+portable-pty = "0.8"
+strip-ansi-escapes = "0.2.1"
+tokio = { version = "1", features = ["macros", "net", "sync", "rt", "process", "time"] }
+axum = { version = "0.8", features = ["ws", "multipart"] }
+futures-util = { version = "0.3", default-features = false, features = ["sink"] }
+rust-embed = { version = "8", features = ["interpolate-folder-path"] }
+mime_guess = "2"
+base64 = "0.22"
+notify = { version = "7", default-features = false, features = ["macos_fsevent"] }
+dirs = "6"
+reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
+tokio-stream = { version = "0.1", features = ["sync"] }
+regex = "1"
+vt100 = "0.15"
+hostname = "0.4"
+async-stream = "0.3"
+fs2 = "0.4"

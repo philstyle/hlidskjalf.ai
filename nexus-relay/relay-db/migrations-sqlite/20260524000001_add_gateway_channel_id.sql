@@ -1,0 +1,1 @@
+-- no-op: gateway_channel_id was folded into the namespaces CREATE TABLE in migration 1.
