@@ -55,6 +55,13 @@ claude --version     # Claude Code CLI — only needed to run actual AI agents i
 - **No database server needed.** The relay runs on **SQLite, compiled into the binary** —
   the `.db` file is created automatically. (Postgres is only for the central/multi-host
   deployment; a standalone squad doesn't need it.)
+- **Set your git identity once** — the kit never touches it, so configure it yourself or
+  commits inside agent sessions will fail with *"please tell me who you are"*:
+  ```bash
+  git config --global user.name  "Your Name"
+  git config --global user.email "you@example.com"
+  ```
+  (`setup.sh` warns if either is missing.)
 - macOS or Linux. (PTYs are used; native Windows is not supported — use WSL.)
 
 **Pick your values now** (used throughout):
@@ -170,6 +177,16 @@ prints `200`.
 ---
 
 ## 6. Seed the squad (create cards)
+
+> **Using your own repos — GitHub is optional.** A card's code can come from either:
+> - **A local folder (any host: GitHub, GitLab, self-hosted, or no remote at all).** Clone
+>   your repo yourself into the workspace root (`~/.skynexus-sessions/$SQUAD/<name>`), then
+>   create a **`local`** card pointing at it (see below). Your own git remotes and auth keep
+>   working — the NCC never touches them, so no `gh` needed.
+> - **A GitHub repo** — needs `gh auth login`. To make the New-Session repo dropdown
+>   auto-list your repos, set the **`github_org`** setting (⚙ gear → it accepts a GitHub
+>   **username or org**); otherwise just type `owner/repo` by hand. Leaving it empty only
+>   disables that dropdown — nothing else.
 
 Set a token + base, and get a lane id:
 ```bash

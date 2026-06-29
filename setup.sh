@@ -42,6 +42,23 @@ for c in cargo node npm git curl; do command -v "$c" >/dev/null 2>&1 || die "mis
 [[ -f "$RELAY_REPO/relay-api/Cargo.toml" ]] || die "relay repo not found at $RELAY_REPO (run from the kit root)"
 [[ -f "$NCC_REPO/deploy/standup-local.sh" ]] || die "NCC repo not found at $NCC_REPO (run from the kit root)"
 
+# --- identity preflight (warn-only; nothing here is set for you) ---
+# The NCC/relay never touch your git identity or GitHub auth. The (removed) org
+# bootstrap used to set git user.name/email; now it's yours to set. Surface gaps up
+# front so a commit or a GitHub-clone doesn't fail later, deep inside a session.
+GIT_NAME="$(git config --global user.name 2>/dev/null || true)"
+GIT_EMAIL="$(git config --global user.email 2>/dev/null || true)"
+if [[ -z "$GIT_NAME" || -z "$GIT_EMAIL" ]]; then
+  log "WARNING: git identity is not fully configured — commits inside agent sessions will fail until you set it:"
+  [[ -z "$GIT_NAME"  ]] && log "    git config --global user.name  \"Your Name\""
+  [[ -z "$GIT_EMAIL" ]] && log "    git config --global user.email \"you@example.com\""
+fi
+if command -v gh >/dev/null 2>&1; then
+  gh auth status >/dev/null 2>&1 || log "NOTE: 'gh' is installed but not logged in — needed ONLY for GitHub-source cards ('gh auth login'). Local-folder cards work without it."
+else
+  log "NOTE: no 'gh' (GitHub CLI) — needed ONLY to clone GitHub repos as cards. Point cards at your own local clones (any host) and you don't need it. See SETUP.md §6."
+fi
+
 # --- pick a FREE relay port (don't collide with anything listening) ---
 port_busy() { lsof -nP -iTCP:"$1" -sTCP:LISTEN >/dev/null 2>&1 || (exec 3<>"/dev/tcp/127.0.0.1/$1") 2>/dev/null; }
 RELAY_PORT="$RELAY_PORT_BASE"
