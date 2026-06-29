@@ -1591,12 +1591,11 @@ function statusBarHtml() {
 }
 
 function bootstrapBadgeHtml() {
-  const st = bootstrapState ? bootstrapState.state : "idle";
-  const showBtn = (st === "idle" || st === "failed");
-  const btnHtml = showBtn
-    ? `<button class="bootstrap-btn" id="bootstrap-run-btn">Run Bootstrap</button>`
-    : "";
-  return `<div class="bootstrap-section"><span class="bootstrap-badge bootstrap-${escapeHtml(st)}">Bootstrap: ${escapeHtml(st)}</span>${btnHtml}</div>`;
+  // Standalone kit: the org bootstrap step is removed and skipped at startup
+  // (NCC_SKIP_BOOTSTRAP=1), so there is nothing to provision — never show the
+  // "Bootstrap: …" badge or the "Run Bootstrap" button (clicking it would only
+  // try the absent org script and report "failed"). Render nothing.
+  return "";
 }
 
 async function handleBootstrapRun() {
