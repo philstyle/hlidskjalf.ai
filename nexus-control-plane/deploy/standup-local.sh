@@ -100,6 +100,10 @@ BOOT_TOKEN_FWD="${NCC_BOOTSTRAP_TOKEN:-}"
 # admin API. SUBSTRATE_ADMIN_ADDR is not NCC_*/RELAY_NAMESPACE so it survives the
 # scrub and is inherited as-is; only this one needs rescuing.
 SUBSTRATE_ENABLED_FWD="${NCC_SUBSTRATE_ENABLED:-}"
+# Default Agent Wake ON so a fresh instance "just works" — cards register on the relay
+# and idle sessions get tapped on the shoulder when a message arrives. Override with
+# NCC_WAKE_ENABLED=0. (Captured here so the NCC_* scrub below doesn't eat it.)
+WAKE_ENABLED_FWD="${NCC_WAKE_ENABLED:-1}"
 for v in $(env | sed -n 's/^\(NCC_[A-Za-z0-9_]*\)=.*/\1/p'); do unset "$v"; done
 unset RELAY_NAMESPACE 2>/dev/null || true
 
@@ -190,6 +194,7 @@ log "starting '$NAME' on port $PORT ..."
     [[ -n "$SKIP_BOOT_FWD" ]] && export NCC_SKIP_BOOTSTRAP="$SKIP_BOOT_FWD"
     [[ -n "$BOOT_TOKEN_FWD" ]] && export NCC_BOOTSTRAP_TOKEN="$BOOT_TOKEN_FWD"
     [[ -n "$SUBSTRATE_ENABLED_FWD" ]] && export NCC_SUBSTRATE_ENABLED="$SUBSTRATE_ENABLED_FWD"
+    export NCC_WAKE_ENABLED="$WAKE_ENABLED_FWD"
     [[ -n "$NAMESPACE" ]] && export RELAY_NAMESPACE="$NAMESPACE"
     nohup "$BIN" >"$LOG" 2>&1 &
     echo $! > "$DATA_DIR/ncc.pid"

@@ -186,14 +186,14 @@ function setStoredViewMode(view) {
 
 function viewSwitcherHtml(activeView) {
   const views = [
-    ["board", "Board"],
-    ["split", "Split"],
-    ["dashboard", "Grid"],
+    ["board", "Board", "Kanban board — cards arranged in lanes (Queued, Active, Waiting…)"],
+    ["split", "Split", "Sidebar session list beside one full terminal"],
+    ["dashboard", "Grid", "Every live session at once, each a shrunk live terminal"],
   ];
   return `
     <div class="view-switcher" role="tablist" aria-label="View mode">
-      ${views.map(([view, label]) => `
-        <button class="view-switch-btn${activeView === view ? " active" : ""}" data-view-mode="${view}" role="tab" aria-selected="${activeView === view ? "true" : "false"}">${label}</button>
+      ${views.map(([view, label, tip]) => `
+        <button class="view-switch-btn${activeView === view ? " active" : ""}" data-view-mode="${view}" role="tab" aria-selected="${activeView === view ? "true" : "false"}" title="${tip}">${label}</button>
       `).join("")}
     </div>
   `;
@@ -1344,7 +1344,7 @@ function renderDashboard(sessions) {
           </div>
         </div>
         ${viewSwitcherHtml("dashboard")}
-        <button class="settings-btn" id="settings-btn" aria-label="Settings">&#9881;</button>
+        <button class="settings-btn" id="settings-btn" aria-label="Settings" title="Settings & ‘How this works’ legend">&#9881;</button>
       </header>
       ${visibleSessions.length
         ? `<main class="dashboard-grid">${visibleSessions.map((card) => dashboardCardHtml(card)).join("")}</main>`
@@ -1727,7 +1727,7 @@ function sidebarEntryHtml(card) {
   const relayMode = card.relay_mode ?? null;
   const relayEnabled = card.relay_enabled ?? false;
   const relayIcon = relayEnabled && relayMode
-    ? `<span class="relay-mode-icon" data-workspace="${escapeHtml(card.workspace_path || "")}" data-mode="${relayMode}" title="Relay: ${relayMode === "auto" ? "Auto \u2014 delivering messages" : "Manual \u2014 holding messages"}">${relayMode === "auto" ? "\u{1F4E1}" : "\u23F8"}</span>`
+    ? `<span class="relay-mode-icon" data-workspace="${escapeHtml(card.workspace_path || "")}" data-mode="${relayMode}" title="Relay ${relayMode === "auto" ? "Auto (\uD83D\uDCE1) \u2014 messages are delivered to this agent automatically when it's idle. Click to switch to Manual." : "Manual (\u23F8) \u2014 messages are held until you deliver them. Click to switch to Auto."}">${relayMode === "auto" ? "\u{1F4E1}" : "\u23F8"}</span>`
     : "";
   const sid = card.session_id || "";
   const resumeBtn = !card.is_alive ? `<button class="sidebar-resume-btn" data-card-id="${escapeHtml(card.card_id)}" data-card-name="${escapeHtml(card.card_name)}" title="Resume session">&#8635;</button>` : "";
@@ -2453,12 +2453,12 @@ function renderSplitLayout(sessions) {
         <div class="sidebar-footer">
           <span class="status-dot ${dotClass}"></span>
           <span class="status-label">${connLabel}</span>
-          <span class="wake-indicator">
+          <span class="wake-indicator" style="cursor:pointer" title="Agent Wake — when ON, agents register on the relay and an idle session gets tapped on the shoulder the moment a message arrives. Click to toggle.">
             <span class="wake-dot wake-dot-off"></span>
             <span class="wake-label" id="wake-label">Wake: Off</span>
             <span class="wake-badge" id="wake-badge" style="display:none"></span>
           </span>
-          <button id="sidebar-settings-btn" aria-label="Settings">&#9881;</button>
+          <button id="sidebar-settings-btn" aria-label="Settings" title="Settings & ‘How this works’ legend">&#9881;</button>
         </div>
       </div>
       <div class="split-divider"></div>
@@ -2847,6 +2847,16 @@ async function renderSettings() {
         <span class="terminal-title">Settings</span>
       </div>
       <div class="settings-body">
+        <details class="settings-legend" style="margin-bottom:18px;border:1px solid #232a3a;border-radius:10px;background:rgba(255,255,255,.02);padding:0 14px;" open>
+          <summary style="cursor:pointer;padding:12px 0;font-weight:600;">How this works — quick legend</summary>
+          <div style="padding:0 2px 14px;line-height:1.7;font-size:13.5px;color:#aeb6c6;">
+            <p style="margin:6px 0;"><b>Views</b> (top tabs): <b>Board</b> = lanes / kanban · <b>Split</b> = session list + one terminal · <b>Grid</b> = every live session at once.</p>
+            <p style="margin:6px 0;"><b>Agent Wake</b> (the “Wake: …” pill, bottom-left of Split view): when <b>On</b>, agents register on the relay and an <i>idle</i> session gets tapped on the shoulder the moment a message arrives. Defaults to <b>On</b>. Click the pill to toggle.</p>
+            <p style="margin:6px 0;"><b>Relay mode</b> (icon on each card): <b>📡 Auto</b> = messages are delivered to the agent automatically · <b>⏸ Manual</b> = messages are held until you deliver them. Click the icon to switch.</p>
+            <p style="margin:6px 0;"><b>Status dots</b>: green = connected / active · grey = off · amber = retrying.</p>
+            <p style="margin:6px 0;"><b>⚙ gear</b> = this Settings page · <b>⋮</b> on a card = per-card actions · the <b>Experimental Actions</b> panel sends a message or sets wake / relay mode for one session.</p>
+          </div>
+        </details>
         ${settingsError
           ? `<div class="settings-load-error">${escapeHtml(settingsError)}</div>`
           : renderSettingsSections(settings)}
