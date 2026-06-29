@@ -2664,6 +2664,8 @@ function mountTerminalInPanel() {
 
   const container = document.getElementById("terminal-container");
   termInstance.open(container);
+  fitSplitTerminal(container);
+  scheduleSplitTerminalFit(container);
 
   termInstance.onData((data) => {
     if (ws && ws.readyState === WebSocket.OPEN) {
@@ -2678,16 +2680,28 @@ function mountTerminalInPanel() {
     if (resizeRafId) return;
     resizeRafId = requestAnimationFrame(() => {
       resizeRafId = null;
-      if (container.clientWidth > 0 && container.clientHeight > 0 && fitAddon) {
-        fitAddon.fit();
-        const dims = fitAddon.proposeDimensions();
-        if (dims && dims.cols > 0 && dims.rows > 0) {
-          sendResizeMsg(dims.cols, dims.rows);
-        }
-      }
+      fitSplitTerminal(container);
     });
   });
   resizeObserver.observe(container);
+}
+
+function fitSplitTerminal(container) {
+  if (!termInstance || !fitAddon || !container || !container.isConnected) return;
+  if (container.clientWidth <= 0 || container.clientHeight <= 0) return;
+  fitAddon.fit();
+  const dims = fitAddon.proposeDimensions();
+  if (dims && dims.cols > 0 && dims.rows > 0) {
+    sendResizeMsg(dims.cols, dims.rows);
+  }
+}
+
+function scheduleSplitTerminalFit(container) {
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      fitSplitTerminal(container);
+    });
+  });
 }
 
 function openSplitTerminal(sessionId, cardName, cardId) {
@@ -3979,13 +3993,16 @@ function connectWs(sessionId) {
           desktopRows = msg.rows;
         }
         if (termInstance) {
-          if (window.innerWidth >= 768 && fitAddon) {
-            // Laptop: fit to container, let ResizeObserver handle
-            // Don't call scaleTerminal — the ResizeObserver will fire fit() + sendResizeMsg()
-          } else if (desktopCols && desktopRows) {
+          const shouldFitDesktop = window.innerWidth >= 768 && fitAddon;
+          if (!shouldFitDesktop && desktopCols && desktopRows) {
             scaleTerminal();
           }
-          termInstance.write(msg.data);
+          termInstance.write(msg.data, () => {
+            if (!shouldFitDesktop) return;
+            const container = document.getElementById("terminal-container");
+            fitSplitTerminal(container);
+            scheduleSplitTerminalFit(container);
+          });
           termInstance.focus();
         }
         bufferSeq = msg.seq;
