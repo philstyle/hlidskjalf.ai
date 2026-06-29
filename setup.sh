@@ -2,17 +2,21 @@
 # setup.sh — stand up a standalone NCC + private local relay on THIS machine,
 # non-conflicting with anything else running, and self-documenting.
 #
-# It: picks a free relay port, uses an isolated Postgres DB + per-squad dirs,
+# It: picks a free relay port, uses an isolated SQLite DB file + per-squad dirs,
 # generates its own keys, wires the NCC at the local relay, and writes a
 # SETUP-MANIFEST.md recording every key / port / env var it set up. Safe to run
-# next to other NCCs / relays / Postgres DBs on the same host.
+# next to other NCCs / relays on the same host.
+#
+# Storage: the relay runs on SQLite (compiled in — no database server to install
+# or run; the .db file is created automatically). To use Postgres instead, build
+# the relay with default features and pass a postgres:// DATABASE_URL by hand —
+# see SETUP.md. Standalone defaults to SQLite.
 #
 # Usage:   ./setup.sh [squad-name]
 #   squad-name : lowercase letters/digits/hyphens. Default: myteam.
 # Env overrides (optional):
 #   RELAY_PORT_BASE     first port to scan for the relay (default 8431)
-#   DATABASE_URL_BASE   postgres base, e.g. postgres://user:pass@localhost (default postgres://localhost)
-#   PGHOST              postgres host (default localhost)
+#   RELAY_DB_FILE       sqlite db path (default ~/.local/share/relay-<squad>/relay.db)
 #
 # It does NOT seed cards or launch AI agents — those are repo-specific; see SETUP.md §6–7.
 set -euo pipefail
@@ -26,17 +30,15 @@ RELAY_REPO="$KIT/nexus-relay"
 
 SQUAD="${1:-myteam}"
 [[ "$SQUAD" =~ ^[a-z0-9][a-z0-9-]*$ ]] || die "squad name must be lowercase alphanumeric/hyphens (got '$SQUAD')"
-RELAY_DB="relay_${SQUAD//-/_}"
 RELAY_PORT_BASE="${RELAY_PORT_BASE:-8431}"
-PGHOST="${PGHOST:-localhost}"
-DBURL_BASE="${DATABASE_URL_BASE:-postgres://${PGHOST}}"
+RELAY_DB_FILE="${RELAY_DB_FILE:-$HOME/.local/share/relay-${SQUAD}/relay.db}"
+DBURL="sqlite://${RELAY_DB_FILE}"
 RELAY_LOG="${TMPDIR:-/tmp}/relay-${SQUAD}.log"
 
 log "=== standing up squad '$SQUAD' (isolated, non-conflicting) ==="
 
-# --- prerequisites ---
-for c in cargo node npm psql createdb git curl; do command -v "$c" >/dev/null 2>&1 || die "missing prerequisite: $c"; done
-pg_isready -q -h "$PGHOST" >/dev/null 2>&1 || pg_isready -q >/dev/null 2>&1 || die "PostgreSQL not reachable (start it, or set PGHOST/DATABASE_URL_BASE)"
+# --- prerequisites (no Postgres: the relay's SQLite backend is compiled in) ---
+for c in cargo node npm git curl; do command -v "$c" >/dev/null 2>&1 || die "missing prerequisite: $c"; done
 [[ -f "$RELAY_REPO/relay-api/Cargo.toml" ]] || die "relay repo not found at $RELAY_REPO (run from the kit root)"
 [[ -f "$NCC_REPO/deploy/standup-local.sh" ]] || die "NCC repo not found at $NCC_REPO (run from the kit root)"
 
@@ -46,17 +48,16 @@ RELAY_PORT="$RELAY_PORT_BASE"
 while port_busy "$RELAY_PORT"; do RELAY_PORT=$((RELAY_PORT+1)); [[ "$RELAY_PORT" -le 65535 ]] || die "no free port from $RELAY_PORT_BASE"; done
 log "relay port: $RELAY_PORT (scanned from $RELAY_PORT_BASE)"
 
-# --- isolated DB (refuse to clobber an existing one) ---
-if psql -h "$PGHOST" -lqt 2>/dev/null | cut -d'|' -f1 | tr -d ' ' | grep -qx "$RELAY_DB"; then
-  die "Postgres DB '$RELAY_DB' already exists — pick a different squad name, or 'dropdb $RELAY_DB' to reuse it"
+# --- isolated SQLite DB file (refuse to clobber an existing one) ---
+if [[ -e "$RELAY_DB_FILE" ]]; then
+  die "SQLite DB '$RELAY_DB_FILE' already exists — pick a different squad name, or 'rm -f ${RELAY_DB_FILE}*' to reuse it"
 fi
-createdb -h "$PGHOST" "$RELAY_DB"
-DBURL="${DBURL_BASE}/${RELAY_DB}"
-log "created isolated DB: $RELAY_DB"
+mkdir -p "$(dirname "$RELAY_DB_FILE")"
+log "relay SQLite DB: $RELAY_DB_FILE (migrations create it on init)"
 
-# --- build relay ---
-log "building relay (cargo build --release; first build takes a few minutes)…"
-( cd "$RELAY_REPO" && cargo build --release --bin relay-api --bin relay-bootstrap >/dev/null )
+# --- build relay (SQLite backend — no DB server needed) ---
+log "building relay (cargo build --release, SQLite backend; first build takes a few minutes)…"
+( cd "$RELAY_REPO" && cargo build --release --no-default-features --features backend-sqlite --bin relay-api --bin relay-bootstrap >/dev/null )
 
 # --- bootstrap: migrations + root token, then namespace (admin + operator keys) ---
 log "initializing relay DB (migrations + root token)…"
@@ -121,7 +122,7 @@ Written by setup.sh. **Local sandbox credentials — do NOT commit or share this
 - NCC:    \`RELAY_URL=http://127.0.0.1:$RELAY_PORT\`  \`RELAY_ADMIN_KEY=<the nra_ above>\`  \`NCC_PORT=$NCC_PORT\`
 - NCC data dir:       \`$HOME/.local/share/ncc-$SQUAD\`  (pid: \`ncc.pid\`)
 - NCC workspace root: \`$HOME/.skynexus-sessions/$SQUAD\`
-- Postgres DB:        \`$RELAY_DB\` (isolated — created by this run)
+- SQLite DB file:     \`$RELAY_DB_FILE\` (isolated — created by this run; WAL sidecars alongside)
 
 ## Next steps (not automated — repo-specific)
 1. Seed cards from your repos / local folders — see SETUP.md §6.
@@ -130,7 +131,7 @@ Written by setup.sh. **Local sandbox credentials — do NOT commit or share this
 
 ## Operate
 - Restart / teardown commands — see SETUP.md "Operate". Teardown:
-  \`kill \$(cat $HOME/.local/share/ncc-$SQUAD/ncc.pid); kill \$(lsof -ti :$RELAY_PORT); dropdb $RELAY_DB\`
+  \`kill \$(cat $HOME/.local/share/ncc-$SQUAD/ncc.pid); kill \$(lsof -ti :$RELAY_PORT); rm -f ${RELAY_DB_FILE}*\`
 EOF
 chmod 600 "$MANIFEST" 2>/dev/null || true
 log "wrote manifest (with all keys/env): $MANIFEST"
@@ -140,7 +141,7 @@ cat >&2 <<EOF
 [setup] ============================ DONE ============================
 [setup]  NCC board:       $NCC_URL     token: $NCC_TOKEN
 [setup]  Relay dashboard: http://127.0.0.1:$RELAY_PORT/dashboard   operator: $OPERATOR_KEY
-[setup]  Squad/namespace: $SQUAD       Postgres DB: $RELAY_DB
+[setup]  Squad/namespace: $SQUAD       SQLite DB: $RELAY_DB_FILE
 [setup]  Everything (keys, env, paths) is in: $MANIFEST
 [setup]  relay CLI: add the kit's bin/ to PATH so you and your sessions can message:
 [setup]      export PATH="$KIT/bin:\$PATH"

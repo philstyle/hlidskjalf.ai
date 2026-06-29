@@ -46,25 +46,21 @@ or customize what the script does.
 rustc --version      # Rust toolchain (https://rustup.rs) — needed to build both services
 cargo --version
 node --version       # Node.js — needed to build the NCC's web UI
-psql --version       # PostgreSQL client — the relay REQUIRES Postgres
-pg_isready           # Postgres must be RUNNING and accept local connections
 python3 --version    # used by the bundled `relay` CLI (bin/relay) + the snippets in §6–7
 git --version
 gh auth status       # GitHub CLI, authenticated — only if you'll clone GitHub repos as cards
 claude --version     # Claude Code CLI — only needed to run actual AI agents in the sessions
 ```
 
-- If `pg_isready` fails, start Postgres (macOS: `brew services start postgresql`, or
-  `postgres -D <datadir>`; Linux: `sudo systemctl start postgresql`). You need to be
-  able to `createdb`. If your Postgres needs a user/password, note its connection
-  string — you'll use it as `DATABASE_URL` below (e.g.
-  `postgres://user:pass@localhost/<db>`); the examples assume passwordless local.
+- **No database server needed.** The relay runs on **SQLite, compiled into the binary** —
+  the `.db` file is created automatically. (Postgres is only for the central/multi-host
+  deployment; a standalone squad doesn't need it.)
 - macOS or Linux. (PTYs are used; native Windows is not supported — use WSL.)
 
 **Pick your values now** (used throughout):
 - `SQUAD` = a short name for this experiment, e.g. `myteam` (letters/hyphens).
 - `RELAY_PORT` = a free port for the relay, e.g. `8431`.
-- `RELAY_DB` = an isolated Postgres DB name, e.g. `relay_myteam`.
+- `RELAY_DB_FILE` = where the relay's SQLite DB lives, e.g. `~/.local/share/relay-myteam/relay.db`.
 
 ---
 
@@ -76,7 +72,7 @@ standalone-ncc-kit/
 ├── setup.sh                 ← one-command infra setup (the Quick path above)
 ├── bin/relay                ← bundled relay CLI (send/read messages; no org tooling needed)
 ├── nexus-control-plane/     ← the NCC (Rust + a vanilla-JS web UI)
-└── nexus-relay/             ← the relay message bus (Rust + Postgres)
+└── nexus-relay/             ← the relay message bus (Rust + SQLite)
 ```
 
 Set convenience paths (and put the bundled `relay` CLI on PATH so you **and your
@@ -90,22 +86,28 @@ export PATH="$KIT/bin:$PATH"     # makes `relay` available; add to your shell rc
 
 ---
 
-## 2. Build the relay
+## 2. Build the relay (SQLite backend)
 
 ```bash
 cd "$RELAY_REPO"
-cargo build --release --bin relay-api --bin relay-bootstrap
+cargo build --release --no-default-features --features backend-sqlite \
+  --bin relay-api --bin relay-bootstrap
 ```
 **Check:** `ls target/release/relay-api target/release/relay-bootstrap` both exist.
 (First build pulls many crates — minutes is normal.)
+
+> `--no-default-features --features backend-sqlite` selects the SQLite storage backend
+> (the default is Postgres, for the central/multi-host deployment). SQLite is bundled into
+> the binary — no database server. To use Postgres instead, build with the default features
+> and use a `postgres://…` `DATABASE_URL` everywhere `sqlite://…` appears below.
 
 ---
 
 ## 3. Create the relay DB + tokens (one-time)
 
 ```bash
-createdb "$RELAY_DB"
-export DATABASE_URL="postgres://localhost/$RELAY_DB"
+# The SQLite file (and its parent dir) are created automatically on first migration.
+export DATABASE_URL="sqlite://$RELAY_DB_FILE"
 
 # migrations + a ROOT token (nrr_...) — SAVE the printed token
 "$RELAY_REPO/target/release/relay-bootstrap" init
@@ -127,7 +129,7 @@ ROOT_TOKEN=<nrr_... from previous step> \
 
 ```bash
 cd "$RELAY_REPO"
-DATABASE_URL="postgres://localhost/$RELAY_DB" LISTEN_ADDR="127.0.0.1:$RELAY_PORT" \
+DATABASE_URL="sqlite://$RELAY_DB_FILE" LISTEN_ADDR="127.0.0.1:$RELAY_PORT" \
   nohup target/release/relay-api > /tmp/relay-$SQUAD.log 2>&1 &
 sleep 2
 ```
@@ -202,8 +204,10 @@ Starting a session registers the card on your local relay and injects its relay 
 ```bash
 curl -s -X POST $B/cards/<card_id>/session -H "$T" -d '{}'   # repeat per card
 ```
-**Check registration:** `psql -d $RELAY_DB -tAc "SELECT host||'/'||agent_name FROM participants;"`
-lists your cards under namespace `$SQUAD`.
+**Check registration:** list participants with the bundled CLI + your OPERATOR key —
+`RELAY_URL="http://127.0.0.1:$RELAY_PORT" RELAY_API_KEY=<nrp_… operator key> relay participants`
+— your cards appear as `$SQUAD/<host>/<agent>`. (Or, if you have the `sqlite3` CLI:
+`sqlite3 "$RELAY_DB_FILE" "SELECT host||'/'||agent_name FROM participants;"`.)
 
 **Prove agent-to-agent relay** (replace IDs with two of your participants — get a
 target's id from its workspace `.relay/identity.json`):
@@ -248,7 +252,7 @@ cat ~/.local/share/ncc-$SQUAD/ncc.pid ; curl -s http://localhost:<NCC_PORT>/heal
 lsof -ti :$RELAY_PORT ; curl -s http://127.0.0.1:$RELAY_PORT/health
 
 # Restart relay (if it died) — binary already built
-cd "$RELAY_REPO" && DATABASE_URL="postgres://localhost/$RELAY_DB" LISTEN_ADDR="127.0.0.1:$RELAY_PORT" \
+cd "$RELAY_REPO" && DATABASE_URL="sqlite://$RELAY_DB_FILE" LISTEN_ADDR="127.0.0.1:$RELAY_PORT" \
   nohup target/release/relay-api > /tmp/relay-$SQUAD.log 2>&1 &
 
 # Restart NCC (KILLS its sessions) — relay must be up first
@@ -259,7 +263,7 @@ cd "$NCC_REPO" && RELAY_ADMIN_KEY=<nra_...> RELAY_URL="http://127.0.0.1:$RELAY_P
 
 # Tear it all down
 kill "$(cat ~/.local/share/ncc-$SQUAD/ncc.pid)" ; kill "$(lsof -ti :$RELAY_PORT)"
-dropdb "$RELAY_DB"
+rm -f "$RELAY_DB_FILE"*    # the .db plus its -wal/-shm sidecars
 # workspaces under ~/.skynexus-sessions/$SQUAD and data under ~/.local/share/ncc-$SQUAD persist until removed
 ```
 
@@ -269,8 +273,8 @@ dropdb "$RELAY_DB"
 
 - **`send returns "session is not idle"`** — the send endpoint waits for the agent to be
   idle. For a programmatic clear/command, add `"force":true` to bypass.
-- **Relay won't start / `DATABASE_URL is required`** — Postgres isn't running or the URL
-  is wrong. Check `pg_isready`; set `DATABASE_URL` to a reachable DB you can write.
+- **Relay won't start / `DATABASE_URL is required`** — export `DATABASE_URL="sqlite://$RELAY_DB_FILE"`
+  before launching `relay-api` (and make sure the parent dir is writable — it's auto-created).
 - **Port already in use** — pick a different `RELAY_PORT`; the NCC auto-picks its own free
   port (read it from the standup-local output).
 - **`bootstrap.sh: No such file`** in NCC log — harmless. That's optional org tooling.

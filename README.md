@@ -23,15 +23,16 @@ for them to coordinate. What you get out of it scales with how well you wield it
 
 ## Quick start
 
-Check the prerequisites at the top of [`SETUP.md`](SETUP.md) — Rust, Node.js, PostgreSQL,
-Python 3 (plus `gh`/`claude` if you want GitHub clones and live agents) — then:
+Check the prerequisites at the top of [`SETUP.md`](SETUP.md) — Rust, Node.js, Python 3
+(plus `gh`/`claude` if you want GitHub clones and live agents; **no database server needed —
+the relay uses bundled SQLite**) — then:
 
 ```bash
 ./setup.sh myteam        # 'myteam' = any lowercase squad name
 ```
 
 That one command stands the whole thing up **non-conflictingly** (it scans for a free
-port, creates an isolated database and per-squad directories, generates its own keys, and
+port, creates an isolated SQLite DB and per-squad directories, generates its own keys, and
 wires the NCC to the local relay), then writes a `SETUP-MANIFEST.md` with every URL, key,
 and port for your instance. Add the kit's `bin/` to your `PATH` so you and your sessions
 get the `relay` command:
@@ -58,7 +59,7 @@ agent at `SETUP.md` and it can drive the whole setup for you.
 - `setup.sh` — one-command infra setup (free port, isolated DB, generates keys, writes the manifest)
 - `bin/relay` — the bundled relay CLI: send and read messages over your private relay (Python 3, stdlib only)
 - `nexus-control-plane/` — the Nexus Control Center (Rust + a web UI)
-- `nexus-relay/` — the relay message bus (Rust + Postgres)
+- `nexus-relay/` — the relay message bus (Rust + SQLite)
 
 Everything runs locally and self-contained: you mint your own relay keys at setup, and the
 kit carries its own `relay` CLI — no dependency on any external or org service.
